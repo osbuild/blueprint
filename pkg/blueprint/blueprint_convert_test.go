@@ -79,6 +79,18 @@ func TestConvert(t *testing.T) {
 							UID:         common.ToPtr(42),
 							GID:         common.ToPtr(2023),
 						},
+						{
+							Name:               "user-name2",
+							Description:        common.ToPtr("user-desc2"),
+							Password:           common.ToPtr("user-password2"),
+							Key:                common.ToPtr("user-key2"),
+							Home:               common.ToPtr("/home/user2"),
+							Shell:              common.ToPtr("zsh"),
+							Groups:             []string{"wheel"},
+							UID:                common.ToPtr(43),
+							GID:                common.ToPtr(2023),
+							ForcePasswordReset: common.ToPtr(true),
+						},
 					},
 					Group: []GroupCustomization{
 						{
@@ -383,6 +395,18 @@ func TestConvert(t *testing.T) {
 							Groups:      []string{"wheel"},
 							UID:         common.ToPtr(42),
 							GID:         common.ToPtr(2023),
+						},
+						{
+							Name:               "user-name2",
+							Description:        common.ToPtr("user-desc2"),
+							Password:           common.ToPtr("user-password2"),
+							Key:                common.ToPtr("user-key2"),
+							Home:               common.ToPtr("/home/user2"),
+							Shell:              common.ToPtr("zsh"),
+							Groups:             []string{"wheel"},
+							UID:                common.ToPtr(43),
+							GID:                common.ToPtr(2023),
+							ForcePasswordReset: common.ToPtr(true),
 						},
 					},
 					Group: []iblueprint.GroupCustomization{
