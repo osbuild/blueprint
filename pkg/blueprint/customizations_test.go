@@ -3,6 +3,7 @@ package blueprint
 import (
 	"testing"
 
+	"github.com/osbuild/images/pkg/customizations/anaconda"
 	"github.com/osbuild/images/pkg/disk"
 	"github.com/stretchr/testify/assert"
 )
@@ -342,4 +343,90 @@ func TestGetPartitioningMode(t *testing.T) {
 	pm, err = c.GetPartitioningMode()
 	assert.NoError(t, err)
 	assert.Equal(t, disk.LVMPartitioningMode, pm)
+}
+
+func TestGetInstallerErrors(t *testing.T) {
+	type testCase struct {
+		customizations Customizations
+		expected       string
+	}
+
+	testCases := map[string]testCase{
+		"null": {},
+		"happy": {
+			customizations: Customizations{
+				Installer: &InstallerCustomization{
+					Unattended:   true,
+					SudoNopasswd: []string{"robert", "%admin"},
+					Modules: &AnacondaModules{
+						Enable:  []string{anaconda.ModuleUsers},
+						Disable: []string{anaconda.ModuleSecurity},
+					},
+				},
+			},
+		},
+		"unattended+custom": {
+			customizations: Customizations{
+				Installer: &InstallerCustomization{
+					Unattended:   true,
+					SudoNopasswd: []string{"robert", "%admin"},
+					Modules: &AnacondaModules{
+						Enable:  []string{anaconda.ModuleUsers},
+						Disable: []string{anaconda.ModuleSecurity},
+					},
+					Kickstart: &Kickstart{
+						Contents: "whatevz",
+					},
+				},
+			},
+			expected: "installer.unattended is not supported when adding custom kickstart contents",
+		},
+		"sudo+custom": {
+			customizations: Customizations{
+				Installer: &InstallerCustomization{
+					Unattended:   false,
+					SudoNopasswd: []string{"robert", "%admin"},
+					Modules: &AnacondaModules{
+						Enable:  []string{anaconda.ModuleUsers},
+						Disable: []string{anaconda.ModuleSecurity},
+					},
+					Kickstart: &Kickstart{
+						Contents: "whatevz",
+					},
+				},
+			},
+			expected: "installer.sudo-nopasswd is not supported when adding custom kickstart contents",
+		},
+		"users-disabled": {
+			customizations: Customizations{
+				User: []UserCustomization{
+					{
+						Name: "robert",
+					},
+				},
+				Installer: &InstallerCustomization{
+					Unattended:   false,
+					SudoNopasswd: []string{"robert", "%admin"},
+					Modules: &AnacondaModules{
+						Disable: []string{anaconda.ModuleSecurity, anaconda.ModuleUsers},
+					},
+				},
+			},
+			expected: "blueprint contains user or group customizations but disables the required Users Anaconda module",
+		},
+	}
+
+	for name := range testCases {
+		tc := testCases[name]
+		t.Run(name, func(t *testing.T) {
+			assert := assert.New(t)
+			_, err := tc.customizations.GetInstaller()
+			if tc.expected == "" {
+				// all good
+				assert.NoError(err)
+			} else {
+				assert.EqualError(err, tc.expected)
+			}
+		})
+	}
 }
