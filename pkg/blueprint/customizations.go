@@ -3,8 +3,10 @@ package blueprint
 import (
 	"fmt"
 	"reflect"
+	"slices"
 	"strings"
 
+	"github.com/osbuild/images/pkg/customizations/anaconda"
 	"github.com/osbuild/images/pkg/disk"
 )
 
@@ -424,4 +426,31 @@ func (c *Customizations) GetContainerStorage() *ContainerStorageCustomization {
 		return nil
 	}
 	return c.ContainersStorage
+}
+
+func (c *Customizations) GetInstaller() (*InstallerCustomization, error) {
+	if c == nil || c.Installer == nil {
+		return nil, nil
+	}
+
+	// Validate conflicting customizations: Installer options aren't supported
+	// when the user adds their own kickstart content
+	if c.Installer.Kickstart != nil && len(c.Installer.Kickstart.Contents) > 0 {
+		if c.Installer.Unattended {
+			return nil, fmt.Errorf("installer.unattended is not supported when adding custom kickstart contents")
+		}
+		if len(c.Installer.SudoNopasswd) > 0 {
+			return nil, fmt.Errorf("installer.sudo-nopasswd is not supported when adding custom kickstart contents")
+		}
+	}
+
+	// Disabling the user module isn't supported when users or groups are
+	// defined
+	if c.Installer.Modules != nil &&
+		slices.Contains(c.Installer.Modules.Disable, anaconda.ModuleUsers) &&
+		len(c.User)+len(c.Group) > 0 {
+		return nil, fmt.Errorf("blueprint contains user or group customizations but disables the required Users Anaconda module")
+	}
+
+	return c.Installer, nil
 }
