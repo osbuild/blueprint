@@ -454,3 +454,10 @@ func (c *Customizations) GetInstaller() (*InstallerCustomization, error) {
 
 	return c.Installer, nil
 }
+
+func (c *Customizations) GetRPM() *RPMCustomization {
+	if c == nil {
+		return nil
+	}
+	return c.RPM
+}

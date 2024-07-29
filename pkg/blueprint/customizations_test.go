@@ -432,3 +432,20 @@ func TestGetInstallerErrors(t *testing.T) {
 		})
 	}
 }
+
+func TestGetImportRPMGPGKey(t *testing.T) {
+	expectedRPM := RPMCustomization{
+		ImportKeys: &RPMImportKeys{
+			[]string{
+				"/etc/pki/rpm-gpg/RPM-GPG-KEY",
+			},
+		},
+	}
+
+	testCustomizations := Customizations{
+		RPM: &expectedRPM,
+	}
+
+	retRPM := testCustomizations.GetRPM()
+	assert.EqualValues(t, expectedRPM, *retRPM)
+}
