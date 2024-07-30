@@ -460,3 +460,10 @@ func (c *Customizations) GetRPM() *RPMCustomization {
 	}
 	return c.RPM
 }
+
+func (c *Customizations) GetRHSM() *RHSMCustomization {
+	if c == nil {
+		return nil
+	}
+	return c.RHSM
+}

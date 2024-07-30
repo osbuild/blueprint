@@ -3,6 +3,7 @@ package blueprint
 import (
 	"testing"
 
+	"github.com/osbuild/blueprint/internal/common"
 	"github.com/osbuild/images/pkg/disk"
 	"github.com/stretchr/testify/assert"
 
@@ -347,6 +348,36 @@ func TestGetPartitioningMode(t *testing.T) {
 	pm, err = c.GetPartitioningMode()
 	assert.NoError(t, err)
 	assert.Equal(t, disk.LVMPartitioningMode, pm)
+}
+
+func TestGetRHSM(t *testing.T) {
+	expectedRHSM := RHSMCustomization{
+		Config: &RHSMConfig{
+			DNFPlugins: &SubManDNFPluginsConfig{
+				ProductID: &DNFPluginConfig{
+					Enabled: common.ToPtr(false),
+				},
+				SubscriptionManager: &DNFPluginConfig{
+					Enabled: common.ToPtr(false),
+				},
+			},
+			SubscriptionManager: &SubManConfig{
+				RHSMConfig: &SubManRHSMConfig{
+					ManageRepos: common.ToPtr(false),
+				},
+				RHSMCertdConfig: &SubManRHSMCertdConfig{
+					AutoRegistration: common.ToPtr(true),
+				},
+			},
+		},
+	}
+
+	testCustomizations := Customizations{
+		RHSM: &expectedRHSM,
+	}
+
+	retRHSMCustomizations := testCustomizations.GetRHSM()
+	assert.EqualValues(t, expectedRHSM, *retRHSMCustomizations)
 }
 
 func TestGetInstallerErrors(t *testing.T) {
