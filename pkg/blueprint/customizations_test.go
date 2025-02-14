@@ -3,9 +3,11 @@ package blueprint
 import (
 	"testing"
 
-	"github.com/osbuild/images/pkg/customizations/anaconda"
 	"github.com/osbuild/images/pkg/disk"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/osbuild/images/pkg/customizations/anaconda"
+	"github.com/osbuild/images/pkg/rpmmd"
 )
 
 func TestCheckAllowed(t *testing.T) {
@@ -448,4 +450,40 @@ func TestGetImportRPMGPGKey(t *testing.T) {
 
 	retRPM := testCustomizations.GetRPM()
 	assert.EqualValues(t, expectedRPM, *retRPM)
+}
+
+func TestGetRepositories(t *testing.T) {
+	expected := []RepositoryCustomization{
+		{Id: "some-id1", BaseURLs: []string{"example.com/repo1"}},
+		{Id: "some-id2", BaseURLs: []string{"example.com/repo2"}},
+		{Id: "some-id3", BaseURLs: []string{"example.com/repo3"}},
+	}
+
+	TestCustomizations := Customizations{
+		Repositories: expected,
+	}
+
+	repos, err := TestCustomizations.GetRepositories()
+	assert.NoError(t, err)
+	assert.Equal(t, expected, repos)
+}
+
+func TestGetRepositoriesInstallFrom(t *testing.T) {
+	allRepos := []RepositoryCustomization{
+		{Id: "some-id1", BaseURLs: []string{"example.com/repo1"}},
+		{Id: "some-id2", BaseURLs: []string{"example.com/repo2"}, InstallFrom: true},
+		{Id: "some-id3", BaseURLs: []string{"example.com/repo3"}},
+	}
+	expected := []rpmmd.RepoConfig{
+		{Id: "some-id2", BaseURLs: []string{"example.com/repo2"}, GPGKeys: []string{}},
+	}
+
+	TestCustomizations := Customizations{
+		Repositories: allRepos,
+	}
+
+	repos, err := TestCustomizations.GetRepositories()
+	assert.NoError(t, err)
+	filtered := RepoCustomizationsInstallFromOnly(repos)
+	assert.Equal(t, expected, filtered)
 }
