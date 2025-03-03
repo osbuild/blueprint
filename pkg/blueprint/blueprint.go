@@ -19,9 +19,11 @@ type Blueprint struct {
 	Version     string    `json:"version,omitempty" toml:"version,omitempty"`
 	Packages    []Package `json:"packages" toml:"packages"`
 	Modules     []Package `json:"modules" toml:"modules"`
+
 	// Note, this is called "enabled modules" because we already have "modules" except
 	// the "modules" refers to packages and "enabled modules" refers to modularity modules.
 	EnabledModules []EnabledModule `json:"enabled_modules" toml:"enabled_modules"`
+
 	Groups         []Group         `json:"groups" toml:"groups"`
 	Containers     []Container     `json:"containers,omitempty" toml:"containers,omitempty"`
 	Customizations *Customizations `json:"customizations,omitempty" toml:"customizations"`
