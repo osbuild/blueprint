@@ -172,6 +172,19 @@ func TestGetPackages(t *testing.T) {
 	assert.ElementsMatch(t, []string{"tmux-1.2", "openssh-server", "@anaconda-tools", "kernel"}, Received_packages)
 }
 
+func TestGetEnabledModules(t *testing.T) {
+	bp := Blueprint{
+		Name:        "enabled-modules-test",
+		Description: "Testing GetEnabledModules function",
+		Version:     "0.0.1",
+		EnabledModules: []EnabledModule{
+			{Name: "nodejs", Stream: "18"},
+			{Name: "nginx", Stream: "2"}},
+	}
+	Received_enabled_modules := bp.GetEnabledModules()
+	assert.ElementsMatch(t, []string{"nodejs:18", "nginx:2"}, Received_enabled_modules)
+}
+
 func TestKernelNameCustomization(t *testing.T) {
 	kernels := []string{"kernel", "kernel-debug", "kernel-rt"}
 
