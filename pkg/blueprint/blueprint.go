@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/osbuild/blueprint/internal/common"
 	"github.com/osbuild/images/pkg/crypt"
-	"github.com/osbuild/osbuild-composer/internal/common"
 
 	"github.com/coreos/go-semver/semver"
 	iblueprint "github.com/osbuild/images/pkg/blueprint"

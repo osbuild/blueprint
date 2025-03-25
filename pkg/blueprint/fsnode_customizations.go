@@ -7,8 +7,8 @@ import (
 	"regexp"
 	"strconv"
 
-	"github.com/osbuild/osbuild-composer/internal/common"
-	"github.com/osbuild/osbuild-composer/internal/fsnode"
+	"github.com/osbuild/blueprint/internal/common"
+	"github.com/osbuild/images/pkg/customizations/fsnode"
 )
 
 // validateModeString checks that the given string is a valid mode octal number
