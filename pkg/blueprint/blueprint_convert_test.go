@@ -3,10 +3,9 @@ package blueprint
 import (
 	"testing"
 
+	"github.com/osbuild/blueprint/internal/common"
 	iblueprint "github.com/osbuild/images/pkg/blueprint"
 	"github.com/stretchr/testify/assert"
-
-	"github.com/osbuild/osbuild-composer/internal/common"
 )
 
 func TestConvert(t *testing.T) {

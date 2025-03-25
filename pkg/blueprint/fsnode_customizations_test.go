@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/BurntSushi/toml"
-	"github.com/osbuild/osbuild-composer/internal/common"
-	"github.com/osbuild/osbuild-composer/internal/fsnode"
+	"github.com/osbuild/blueprint/internal/common"
+	"github.com/osbuild/images/pkg/customizations/fsnode"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -360,7 +360,7 @@ func TestDirectoryCustomizationUnmarshalJSON(t *testing.T) {
 		{
 			Name: "directory-with-path",
 			JSON: `
-{	
+{
 	"name": "test",
 	"description": "Test",
 	"version": "0.0.0",
