@@ -20,6 +20,15 @@ func TestConvert(t *testing.T) {
 			expected: iblueprint.Blueprint{},
 		},
 		{
+			name: "almost-empty",
+			src: Blueprint{
+				Customizations: &Customizations{},
+			},
+			expected: iblueprint.Blueprint{
+				Customizations: &iblueprint.Customizations{},
+			},
+		},
+		{
 			name: "everything",
 			src: Blueprint{
 				Name:        "name",

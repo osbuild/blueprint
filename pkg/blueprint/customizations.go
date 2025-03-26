@@ -231,7 +231,7 @@ func (c *Customizations) GetUsers() []UserCustomization {
 		return nil
 	}
 
-	users := []UserCustomization{}
+	var users []UserCustomization
 
 	// prepend sshkey for backwards compat (overridden by users)
 	if len(c.SSHKey) > 0 {
