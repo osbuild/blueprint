@@ -5,22 +5,26 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-
 	"path/filepath"
+	"regexp"
 	"slices"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/osbuild/images/pkg/datasizes"
-
 	"github.com/osbuild/images/pkg/pathpolicy"
 )
 
 type DiskCustomization struct {
+	// Type of the partition table: gpt or dos.
+	// Optional, the default depends on the distro and image type.
+	Type       string
 	MinSize    uint64
 	Partitions []PartitionCustomization
 }
 
 type diskCustomizationMarshaler struct {
+	Type       string                   `json:"type,omitempty" toml:"type,omitempty"`
 	MinSize    datasizes.Size           `json:"minsize,omitempty" toml:"minsize,omitempty"`
 	Partitions []PartitionCustomization `json:"partitions,omitempty" toml:"partitions,omitempty"`
 }
@@ -30,6 +34,7 @@ func (dc *DiskCustomization) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &dcm); err != nil {
 		return err
 	}
+	dc.Type = dcm.Type
 	dc.MinSize = dcm.MinSize.Uint64()
 	dc.Partitions = dcm.Partitions
 
@@ -61,6 +66,12 @@ type PartitionCustomization struct {
 	// (optional, defaults depend on payload and mountpoints).
 	MinSize uint64 `json:"minsize" toml:"minsize"`
 
+	// The partition type GUID for GPT partitions. For DOS partitions, this
+	// field can be used to set the (2 hex digit) partition type.
+	// If not set, the type will be automatically set based on the mountpoint
+	// or the payload type.
+	PartType string `json:"part_type,omitempty" toml:"part_type,omitempty"`
+
 	BtrfsVolumeCustomization
 
 	VGCustomization
@@ -79,7 +90,7 @@ type PartitionCustomization struct {
 // Setting the FSType to "swap" creates a swap area (and the Mountpoint must be
 // empty).
 type FilesystemTypedCustomization struct {
-	Mountpoint string `json:"mountpoint,omitempty" toml:"mountpoint,omitempty"`
+	Mountpoint string `json:"mountpoint" toml:"mountpoint"`
 	Label      string `json:"label,omitempty" toml:"label,omitempty"`
 	FSType     string `json:"fs_type,omitempty" toml:"fs_type,omitempty"`
 }
@@ -87,7 +98,7 @@ type FilesystemTypedCustomization struct {
 // An LVM volume group with one or more logical volumes.
 type VGCustomization struct {
 	// Volume group name (optional, default will be automatically generated).
-	Name           string            `json:"name,omitempty" toml:"name,omitempty"`
+	Name           string            `json:"name" toml:"name"`
 	LogicalVolumes []LVCustomization `json:"logical_volumes,omitempty" toml:"logical_volumes,omitempty"`
 }
 
@@ -130,7 +141,7 @@ func (lv *LVCustomization) UnmarshalJSON(data []byte) error {
 
 // A btrfs volume consisting of one or more subvolumes.
 type BtrfsVolumeCustomization struct {
-	Subvolumes []BtrfsSubvolumeCustomization `json:"subvolumes,omitempty" toml:"subvolumes,omitempty"`
+	Subvolumes []BtrfsSubvolumeCustomization
 }
 
 type BtrfsSubvolumeCustomization struct {
@@ -151,8 +162,9 @@ type BtrfsSubvolumeCustomization struct {
 func (v *PartitionCustomization) UnmarshalJSON(data []byte) error {
 	errPrefix := "JSON unmarshal:"
 	var typeSniffer struct {
-		Type    string `json:"type"`
-		MinSize any    `json:"minsize"`
+		Type     string `json:"type"`
+		MinSize  any    `json:"minsize"`
+		PartType string `json:"part_type"`
 	}
 	if err := json.Unmarshal(data, &typeSniffer); err != nil {
 		return fmt.Errorf("%s %w", errPrefix, err)
@@ -181,6 +193,7 @@ func (v *PartitionCustomization) UnmarshalJSON(data []byte) error {
 	}
 
 	v.Type = partType
+	v.PartType = typeSniffer.PartType
 
 	if typeSniffer.MinSize == nil {
 		return fmt.Errorf("minsize is required")
@@ -200,10 +213,11 @@ func (v *PartitionCustomization) UnmarshalJSON(data []byte) error {
 // the type is "plain", none of the fields for btrfs or lvm are used.
 func decodePlain(v *PartitionCustomization, data []byte) error {
 	var plain struct {
-		// Type and minsize are handled by the caller. These are added here to
+		// Type, minsize, and part_type are handled by the caller. These are added here to
 		// satisfy "DisallowUnknownFields" when decoding.
-		Type    string `json:"type"`
-		MinSize any    `json:"minsize"`
+		Type     string `json:"type"`
+		MinSize  any    `json:"minsize"`
+		PartType string `json:"part_type"`
 		FilesystemTypedCustomization
 	}
 
@@ -223,10 +237,11 @@ func decodePlain(v *PartitionCustomization, data []byte) error {
 // the type is btrfs, none of the fields for plain or lvm are used.
 func decodeBtrfs(v *PartitionCustomization, data []byte) error {
 	var btrfs struct {
-		// Type and minsize are handled by the caller. These are added here to
+		// Type, minsize, and part_type are handled by the caller. These are added here to
 		// satisfy "DisallowUnknownFields" when decoding.
-		Type    string `json:"type"`
-		MinSize any    `json:"minsize"`
+		Type     string `json:"type"`
+		MinSize  any    `json:"minsize"`
+		PartType string `json:"part_type"`
 		BtrfsVolumeCustomization
 	}
 
@@ -246,10 +261,11 @@ func decodeBtrfs(v *PartitionCustomization, data []byte) error {
 // is lvm, none of the fields for plain or btrfs are used.
 func decodeLVM(v *PartitionCustomization, data []byte) error {
 	var vg struct {
-		// Type and minsize are handled by the caller. These are added here to
+		// Type, minsize, and part_type are handled by the caller. These are added here to
 		// satisfy "DisallowUnknownFields" when decoding.
-		Type    string `json:"type"`
-		MinSize any    `json:"minsize"`
+		Type     string `json:"type"`
+		MinSize  any    `json:"minsize"`
+		PartType string `json:"part_type"`
 		VGCustomization
 	}
 
@@ -321,23 +337,6 @@ func (v *PartitionCustomization) UnmarshalTOML(data any) error {
 	return nil
 }
 
-func unmarshalTOMLviaJSON(u json.Unmarshaler, data any) error {
-	// This is the most efficient way to reuse code when unmarshaling
-	// structs in toml, it leaks json errors which is a bit sad but
-	// because the toml unmarshaler gives us not "[]byte" but an
-	// already pre-processed "any" we cannot just unmarshal into our
-	// "fooMarshaling" struct and reuse the result so we resort to
-	// this workaround (but toml will go away long term anyway).
-	dataJSON, err := json.Marshal(data)
-	if err != nil {
-		return fmt.Errorf("error unmarshaling TOML data %v: %w", data, err)
-	}
-	if err := u.UnmarshalJSON(dataJSON); err != nil {
-		return fmt.Errorf("error decoding TOML %v: %w", data, err)
-	}
-	return nil
-}
-
 // Validate checks for customization combinations that are generally not
 // supported or can create conflicts, regardless of specific distro or image
 // type policies. The validator ensures all of the following properties:
@@ -352,22 +351,45 @@ func unmarshalTOMLviaJSON(u json.Unmarshaler, data any) error {
 //   - Plain filesystem types are valid for the partition type
 //   - All non-empty properties are valid for the partition type (e.g.
 //     LogicalVolumes is empty when the type is "plain" or "btrfs")
+//   - Filesystems with FSType set to "swap" do not specify a mountpoint.
+//
+// Note that in *addition* consumers should also call
+// ValidateLayoutConstraints() to validate that the policy for disk
+// customizations is met.
 func (p *DiskCustomization) Validate() error {
 	if p == nil {
 		return nil
+	}
+
+	switch p.Type {
+	case "gpt", "":
+	case "dos":
+		// dos/mbr only supports 4 partitions
+		// Unfortunately, at this stage it's unknown whether we will need extra
+		// partitions (bios boot, root, esp), so this check is just to catch
+		// obvious invalid customizations early. The final partition table is
+		// checked after it's created.
+		if len(p.Partitions) > 4 {
+			return fmt.Errorf("invalid partitioning customizations: \"dos\" partition table type only supports up to 4 partitions: got %d", len(p.Partitions))
+		}
+	default:
+		return fmt.Errorf("unknown partition table type: %s (valid: gpt, dos)", p.Type)
 	}
 
 	mountpoints := make(map[string]bool)
 	vgnames := make(map[string]bool)
 	var errs []error
 	for _, part := range p.Partitions {
+		if err := part.ValidatePartitionTypeID(p.Type); err != nil {
+			errs = append(errs, err)
+		}
 		switch part.Type {
+		case "plain", "":
+			errs = append(errs, part.validatePlain(mountpoints))
 		case "lvm":
 			errs = append(errs, part.validateLVM(mountpoints, vgnames))
 		case "btrfs":
 			errs = append(errs, part.validateBtrfs(mountpoints))
-		case "plain", "":
-			errs = append(errs, part.validatePlain(mountpoints))
 		default:
 			errs = append(errs, fmt.Errorf("unknown partition type: %s", part.Type))
 		}
@@ -378,30 +400,6 @@ func (p *DiskCustomization) Validate() error {
 		return fmt.Errorf("invalid partitioning customizations:\n%w", err)
 	}
 	return nil
-}
-
-// decodeSize takes an integer or string representing a data size (with a data
-// suffix) and returns the uint64 representation.
-func decodeSize(size any) (uint64, error) {
-	switch s := size.(type) {
-	case string:
-		return datasizes.Parse(s)
-	case int64:
-		if s < 0 {
-			return 0, fmt.Errorf("cannot be negative")
-		}
-		return uint64(s), nil
-	case float64:
-		if s < 0 {
-			return 0, fmt.Errorf("cannot be negative")
-		}
-		// TODO: emit warning of possible truncation?
-		return uint64(s), nil
-	case uint64:
-		return s, nil
-	default:
-		return 0, fmt.Errorf("failed to convert value \"%v\" to number", size)
-	}
 }
 
 func validateMountpoint(path string) error {
@@ -423,6 +421,11 @@ func validateMountpoint(path string) error {
 // ValidateLayoutConstraints checks that at most one LVM Volume Group or btrfs
 // volume is defined. Returns an error if both LVM and btrfs are set and if
 // either has more than one element.
+//
+// Note that this is a *policy* validation, in theory the "disk" code
+// does support the constraints but we choose not to allow them for
+// now.  Each consumer of "DiskCustomization" should call this
+// *unless* it's very low-level and not end-user-facing.
 func (p *DiskCustomization) ValidateLayoutConstraints() error {
 	if p == nil {
 		return nil
@@ -454,19 +457,19 @@ func (p *DiskCustomization) ValidateLayoutConstraints() error {
 
 // Check that the fs type is valid for the mountpoint.
 func validateFilesystemType(path, fstype string) error {
-	badfsMsg := "unsupported filesystem type for %q: %s"
+	badfsMsgFmt := "unsupported filesystem type for %q: %s"
 	switch path {
 	case "/boot":
 		switch fstype {
 		case "xfs", "ext4":
 		default:
-			return fmt.Errorf(badfsMsg, path, fstype)
+			return fmt.Errorf(badfsMsgFmt, path, fstype)
 		}
 	case "/boot/efi":
 		switch fstype {
 		case "vfat":
 		default:
-			return fmt.Errorf(badfsMsg, path, fstype)
+			return fmt.Errorf(badfsMsgFmt, path, fstype)
 		}
 	}
 	return nil
@@ -484,7 +487,53 @@ var validPlainFSTypes = []string{
 	"xfs",
 }
 
+// exactly 2 hex digits
+var validDosPartitionType = regexp.MustCompile(`^[0-9a-fA-F]{2}$`)
+
+// ValidatePartitionTypeID returns an error if the partition type ID is not
+// valid given the partition table type. If the partition table type is an
+// empty string, the function returns an error only if the partition type ID is
+// invalid for both gpt and dos partition tables.
+func (p *PartitionCustomization) ValidatePartitionTypeID(ptType string) error {
+	// Empty PartType is fine, it will be selected automatically
+	if p.PartType == "" {
+		return nil
+	}
+
+	_, uuidErr := uuid.Parse(p.PartType)
+	validDosType := validDosPartitionType.MatchString(p.PartType)
+
+	switch ptType {
+	case "gpt":
+		if uuidErr != nil {
+			return fmt.Errorf("invalid partition part_type %q for partition table type %q (must be a valid UUID): %w", p.PartType, ptType, uuidErr)
+		}
+	case "dos":
+		if !validDosType {
+			return fmt.Errorf("invalid partition part_type %q for partition table type %q (must be a 2-digit hex number)", p.PartType, ptType)
+		}
+	case "":
+		// We don't know the partition table type yet, the fallback is controlled
+		// by the CustomPartitionTableOptions, so return an error if it fails both.
+		if uuidErr != nil && !validDosType {
+			return fmt.Errorf("invalid part_type %q: must be a valid UUID for GPT partition tables or a 2-digit hex number for DOS partition tables", p.PartType)
+		}
+	default:
+		// ignore: handled elsewhere
+	}
+
+	return nil
+}
+
 func (p *PartitionCustomization) validatePlain(mountpoints map[string]bool) error {
+	if p.FSType == "swap" {
+		// make sure the mountpoint is empty and return
+		if p.Mountpoint != "" {
+			return fmt.Errorf("mountpoint for swap partition must be empty (got %q)", p.Mountpoint)
+		}
+		return nil
+	}
+
 	if err := validateMountpoint(p.Mountpoint); err != nil {
 		return err
 	}
@@ -493,7 +542,7 @@ func (p *PartitionCustomization) validatePlain(mountpoints map[string]bool) erro
 	}
 	// TODO: allow empty fstype with default from distro
 	if !slices.Contains(validPlainFSTypes, p.FSType) {
-		return fmt.Errorf("unknown or invalid filesystem type for mountpoint %q: %s", p.Mountpoint, p.FSType)
+		return fmt.Errorf("unknown or invalid filesystem type (fs_type) for mountpoint %q: %s", p.Mountpoint, p.FSType)
 	}
 	if err := validateFilesystemType(p.Mountpoint, p.FSType); err != nil {
 		return err
@@ -525,6 +574,13 @@ func (p *PartitionCustomization) validateLVM(mountpoints, vgnames map[string]boo
 		}
 		lvnames[lv.Name] = true
 
+		if lv.FSType == "swap" {
+			// make sure the mountpoint is empty and return
+			if lv.Mountpoint != "" {
+				return fmt.Errorf("mountpoint for swap logical volume with name %q in volume group %q must be empty", lv.Name, p.Name)
+			}
+			return nil
+		}
 		if err := validateMountpoint(lv.Mountpoint); err != nil {
 			return fmt.Errorf("invalid logical volume customization: %w", err)
 		}
@@ -539,7 +595,7 @@ func (p *PartitionCustomization) validateLVM(mountpoints, vgnames map[string]boo
 
 		// TODO: allow empty fstype with default from distro
 		if !slices.Contains(validPlainFSTypes, lv.FSType) {
-			return fmt.Errorf("unknown or invalid filesystem type for logical volume with mountpoint %q: %s", lv.Mountpoint, lv.FSType)
+			return fmt.Errorf("unknown or invalid filesystem type (fs_type) for logical volume with mountpoint %q: %s", lv.Mountpoint, lv.FSType)
 		}
 	}
 	return nil
@@ -595,7 +651,9 @@ func CheckDiskMountpointsPolicy(partitioning *DiskCustomization, mountpointAllow
 			mountpoints = append(mountpoints, part.Mountpoint)
 		}
 		for _, lv := range part.LogicalVolumes {
-			mountpoints = append(mountpoints, lv.Mountpoint)
+			if lv.Mountpoint != "" {
+				mountpoints = append(mountpoints, lv.Mountpoint)
+			}
 		}
 		for _, subvol := range part.Subvolumes {
 			mountpoints = append(mountpoints, subvol.Mountpoint)
