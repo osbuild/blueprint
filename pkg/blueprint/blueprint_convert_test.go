@@ -48,6 +48,12 @@ func TestConvert(t *testing.T) {
 						Name:      "name",
 						TLSVerify: common.ToPtr(true),
 					},
+					{
+						Source:       "source2",
+						Name:         "name2",
+						TLSVerify:    common.ToPtr(true),
+						LocalStorage: true,
+					},
 				},
 				Customizations: &Customizations{
 					Hostname: common.ToPtr("hostname"),
@@ -348,6 +354,12 @@ func TestConvert(t *testing.T) {
 						Source:    "source",
 						Name:      "name",
 						TLSVerify: common.ToPtr(true),
+					},
+					{
+						Source:       "source2",
+						Name:         "name2",
+						TLSVerify:    common.ToPtr(true),
+						LocalStorage: true,
 					},
 				},
 				Customizations: &iblueprint.Customizations{
