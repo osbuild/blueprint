@@ -334,6 +334,17 @@ func (c *Customizations) GetFilesystemsMinSize() uint64 {
 	return agg
 }
 
+func (c *Customizations) GetPartitioning() (*DiskCustomization, error) {
+	if c == nil {
+		return nil, nil
+	}
+	if err := c.Disk.Validate(); err != nil {
+		return nil, err
+	}
+
+	return c.Disk, nil
+}
+
 // GetPartitioningMode converts the string to a disk.PartitioningMode type
 func (c *Customizations) GetPartitioningMode() (disk.PartitioningMode, error) {
 	if c == nil {
