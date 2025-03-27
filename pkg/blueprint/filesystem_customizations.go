@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/osbuild/images/pkg/datasizes"
+	"github.com/osbuild/images/pkg/pathpolicy"
 )
 
 type FilesystemCustomization struct {
@@ -138,4 +139,21 @@ func decodeSize(size any) (uint64, error) {
 	default:
 		return 0, fmt.Errorf("failed to convert value \"%v\" to number", size)
 	}
+}
+
+// CheckMountpointsPolicy checks if the mountpoints are allowed by the policy
+func CheckMountpointsPolicy(mountpoints []FilesystemCustomization, mountpointAllowList *pathpolicy.PathPolicies) error {
+	invalidMountpoints := []string{}
+	for _, m := range mountpoints {
+		err := mountpointAllowList.Check(m.Mountpoint)
+		if err != nil {
+			invalidMountpoints = append(invalidMountpoints, m.Mountpoint)
+		}
+	}
+
+	if len(invalidMountpoints) > 0 {
+		return fmt.Errorf("The following custom mountpoints are not supported %+q", invalidMountpoints)
+	}
+
+	return nil
 }
