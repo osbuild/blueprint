@@ -6,6 +6,7 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/osbuild/images/pkg/cert"
 	"github.com/osbuild/images/pkg/customizations/anaconda"
 	"github.com/osbuild/images/pkg/disk"
 )
@@ -466,4 +467,31 @@ func (c *Customizations) GetRHSM() *RHSMCustomization {
 		return nil
 	}
 	return c.RHSM
+}
+
+func (c *Customizations) checkCACerts() error {
+	if c == nil || c.CACerts == nil {
+		return nil
+	}
+
+	for _, bundle := range c.CACerts.PEMCerts {
+		_, err := cert.ParseCerts(bundle)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (c *Customizations) GetCACerts() (*CACustomization, error) {
+	if c == nil {
+		return nil, nil
+	}
+
+	if err := c.checkCACerts(); err != nil {
+		return nil, err
+	}
+
+	return c.CACerts, nil
 }
