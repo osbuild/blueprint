@@ -115,3 +115,27 @@ func (fsc *FilesystemCustomization) UnmarshalJSON(data []byte) error {
 
 	return nil
 }
+
+// decodeSize takes an integer or string representing a data size (with a data
+// suffix) and returns the uint64 representation.
+func decodeSize(size any) (uint64, error) {
+	switch s := size.(type) {
+	case string:
+		return datasizes.Parse(s)
+	case int64:
+		if s < 0 {
+			return 0, fmt.Errorf("cannot be negative")
+		}
+		return uint64(s), nil
+	case float64:
+		if s < 0 {
+			return 0, fmt.Errorf("cannot be negative")
+		}
+		// TODO: emit warning of possible truncation?
+		return uint64(s), nil
+	case uint64:
+		return s, nil
+	default:
+		return 0, fmt.Errorf("failed to convert value \"%v\" to number", size)
+	}
+}

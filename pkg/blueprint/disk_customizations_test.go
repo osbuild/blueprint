@@ -9,6 +9,7 @@ import (
 	"github.com/osbuild/images/pkg/datasizes"
 	"github.com/osbuild/images/pkg/pathpolicy"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestPartitioningValidation(t *testing.T) {
@@ -35,13 +36,18 @@ func TestPartitioningValidation(t *testing.T) {
 			},
 			expectedMsg: "",
 		},
-		"happy-plain+btrfs": {
+		"happy-plain+btrfs+swap": {
 			partitioning: &blueprint.DiskCustomization{
 				Partitions: []blueprint.PartitionCustomization{
 					{
 						FilesystemTypedCustomization: blueprint.FilesystemTypedCustomization{
 							FSType:     "xfs",
 							Mountpoint: "/data",
+						},
+					},
+					{
+						FilesystemTypedCustomization: blueprint.FilesystemTypedCustomization{
+							FSType: "swap",
 						},
 					},
 					{
@@ -78,6 +84,39 @@ func TestPartitioningValidation(t *testing.T) {
 									FilesystemTypedCustomization: blueprint.FilesystemTypedCustomization{
 										FSType:     "ext4",
 										Mountpoint: "/",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedMsg: "",
+		},
+		"happy-plain+lvm-with-swap": {
+			partitioning: &blueprint.DiskCustomization{
+				Partitions: []blueprint.PartitionCustomization{
+					{
+						Type: "plain",
+						FilesystemTypedCustomization: blueprint.FilesystemTypedCustomization{
+							FSType:     "xfs",
+							Mountpoint: "/data",
+						},
+					},
+					{
+						Type: "lvm",
+						VGCustomization: blueprint.VGCustomization{
+							Name: "root",
+							LogicalVolumes: []blueprint.LVCustomization{
+								{
+									FilesystemTypedCustomization: blueprint.FilesystemTypedCustomization{
+										FSType:     "ext4",
+										Mountpoint: "/",
+									},
+								},
+								{
+									FilesystemTypedCustomization: blueprint.FilesystemTypedCustomization{
+										FSType: "swap",
 									},
 								},
 							},
@@ -172,7 +211,7 @@ func TestPartitioningValidation(t *testing.T) {
 					},
 				},
 			},
-			expectedMsg: "invalid partitioning customizations:\nunknown or invalid filesystem type for mountpoint \"/home\": ntfs",
+			expectedMsg: "invalid partitioning customizations:\nunknown or invalid filesystem type (fs_type) for mountpoint \"/home\": ntfs",
 		},
 		"unhappy-plain-badfstype-boot": {
 			partitioning: &blueprint.DiskCustomization{
@@ -203,7 +242,7 @@ func TestPartitioningValidation(t *testing.T) {
 					},
 				},
 			},
-			expectedMsg: "invalid partitioning customizations:\nunknown or invalid filesystem type for mountpoint \"/boot\": zfs",
+			expectedMsg: "invalid partitioning customizations:\nunknown or invalid filesystem type (fs_type) for mountpoint \"/boot\": zfs",
 		},
 		"unhappy-plain-badfstype-efi": {
 			partitioning: &blueprint.DiskCustomization{
@@ -783,7 +822,7 @@ func TestPartitioningValidation(t *testing.T) {
 					},
 				},
 			},
-			expectedMsg: "invalid partitioning customizations:\nunknown or invalid filesystem type for logical volume with mountpoint \"/var/log\": btrfs",
+			expectedMsg: "invalid partitioning customizations:\nunknown or invalid filesystem type (fs_type) for logical volume with mountpoint \"/var/log\": btrfs",
 		},
 		"unhappy-lv-notype": {
 			partitioning: &blueprint.DiskCustomization{
@@ -802,7 +841,7 @@ func TestPartitioningValidation(t *testing.T) {
 					},
 				},
 			},
-			expectedMsg: "invalid partitioning customizations:\nunknown or invalid filesystem type for logical volume with mountpoint \"/var/log\": ",
+			expectedMsg: "invalid partitioning customizations:\nunknown or invalid filesystem type (fs_type) for logical volume with mountpoint \"/var/log\": ",
 		},
 		"unhappy-bad-part-type": {
 			partitioning: &blueprint.DiskCustomization{
@@ -822,6 +861,198 @@ func TestPartitioningValidation(t *testing.T) {
 				},
 			},
 			expectedMsg: "invalid partitioning customizations:\nunknown partition type: what",
+		},
+		"unhappy-swap-with-mountpoint": {
+			partitioning: &blueprint.DiskCustomization{
+				Partitions: []blueprint.PartitionCustomization{
+					{
+						FilesystemTypedCustomization: blueprint.FilesystemTypedCustomization{
+							FSType:     "ext4",
+							Mountpoint: "/home",
+						},
+					},
+					{
+						FilesystemTypedCustomization: blueprint.FilesystemTypedCustomization{
+							FSType:     "swap",
+							Mountpoint: "/swap",
+						},
+					},
+				},
+			},
+			expectedMsg: "invalid partitioning customizations:\nmountpoint for swap partition must be empty (got \"/swap\")",
+		},
+		"unhappy-swaplv-with-mountpoint": {
+			partitioning: &blueprint.DiskCustomization{
+				Partitions: []blueprint.PartitionCustomization{
+					{
+						Type: "lvm",
+						VGCustomization: blueprint.VGCustomization{
+							Name: "badvg",
+							LogicalVolumes: []blueprint.LVCustomization{
+								{
+									Name: "swappylv",
+									FilesystemTypedCustomization: blueprint.FilesystemTypedCustomization{
+										FSType:     "swap",
+										Mountpoint: "/var/swap",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedMsg: "invalid partitioning customizations:\nmountpoint for swap logical volume with name \"swappylv\" in volume group \"badvg\" must be empty",
+		},
+		"gpt": {
+			partitioning: &blueprint.DiskCustomization{
+				Type: "gpt",
+			},
+		},
+		"dos": {
+			partitioning: &blueprint.DiskCustomization{
+				Type: "dos",
+			},
+		},
+		"unhappy-badtype": {
+			partitioning: &blueprint.DiskCustomization{
+				Type: "toucan",
+			},
+			expectedMsg: "unknown partition table type: toucan (valid: gpt, dos)",
+		},
+		"unhappy-too-many-parts": {
+			partitioning: &blueprint.DiskCustomization{
+				Type: "dos",
+				Partitions: []blueprint.PartitionCustomization{
+					{
+						Type: "plain",
+						FilesystemTypedCustomization: blueprint.FilesystemTypedCustomization{
+							FSType:     "xfs",
+							Mountpoint: "/1",
+						},
+					},
+					{
+						Type: "plain",
+						FilesystemTypedCustomization: blueprint.FilesystemTypedCustomization{
+							FSType:     "xfs",
+							Mountpoint: "/2",
+						},
+					},
+					{
+						Type: "plain",
+						FilesystemTypedCustomization: blueprint.FilesystemTypedCustomization{
+							FSType:     "xfs",
+							Mountpoint: "/3",
+						},
+					},
+					{
+						Type: "plain",
+						FilesystemTypedCustomization: blueprint.FilesystemTypedCustomization{
+							FSType:     "ext4",
+							Mountpoint: "/4",
+						},
+					},
+					{
+						Type: "plain",
+						FilesystemTypedCustomization: blueprint.FilesystemTypedCustomization{
+							FSType:     "ext4",
+							Mountpoint: "/5",
+						},
+					},
+					{
+						Type: "plain",
+						FilesystemTypedCustomization: blueprint.FilesystemTypedCustomization{
+							FSType:     "ext4",
+							Mountpoint: "/6",
+						},
+					},
+				},
+			},
+			expectedMsg: `invalid partitioning customizations: "dos" partition table type only supports up to 4 partitions: got 6`,
+		},
+		"happy-partition-part_type-gpt": {
+			partitioning: &blueprint.DiskCustomization{
+				Partitions: []blueprint.PartitionCustomization{
+					{
+						PartType: "12345678-1234-1234-1234-1234567890ab",
+						FilesystemTypedCustomization: blueprint.FilesystemTypedCustomization{
+							FSType:     "ext4",
+							Mountpoint: "/",
+						},
+					},
+				},
+			},
+		},
+		"happy-partition-part_type-dos": {
+			partitioning: &blueprint.DiskCustomization{
+				Type: "dos",
+				Partitions: []blueprint.PartitionCustomization{
+					{
+						PartType: "ef",
+						FilesystemTypedCustomization: blueprint.FilesystemTypedCustomization{
+							FSType:     "ext4",
+							Mountpoint: "/",
+						},
+					},
+				},
+			},
+		},
+		"happy-partition-part_type": {
+			partitioning: &blueprint.DiskCustomization{
+				Partitions: []blueprint.PartitionCustomization{
+					{
+						PartType: "12345678-1234-1234-1234-1234567890ab",
+						FilesystemTypedCustomization: blueprint.FilesystemTypedCustomization{
+							FSType:     "ext4",
+							Mountpoint: "/gpt",
+						},
+					},
+				},
+			},
+		},
+		"unhappy-partition-part_type-gpt": {
+			partitioning: &blueprint.DiskCustomization{
+				Partitions: []blueprint.PartitionCustomization{
+
+					{
+						PartType: "12345678-uuid-1234-1234-1234567890ab",
+						FilesystemTypedCustomization: blueprint.FilesystemTypedCustomization{
+							FSType:     "ext4",
+							Mountpoint: "/gpt",
+						},
+					},
+					{
+						PartType: "0x52",
+						FilesystemTypedCustomization: blueprint.FilesystemTypedCustomization{
+							FSType:     "ext4",
+							Mountpoint: "/dos",
+						},
+					},
+				},
+			},
+			expectedMsg: "invalid partitioning customizations:\ninvalid part_type \"12345678-uuid-1234-1234-1234567890ab\": must be a valid UUID for GPT partition tables or a 2-digit hex number for DOS partition tables\ninvalid part_type \"0x52\": must be a valid UUID for GPT partition tables or a 2-digit hex number for DOS partition tables",
+		},
+		"unhappy-partition-part_type-dos": {
+			partitioning: &blueprint.DiskCustomization{
+				Type: "dos",
+				Partitions: []blueprint.PartitionCustomization{
+
+					{
+						PartType: "93a9549d-cae1-4024-b95c-e09d77b34c60",
+						FilesystemTypedCustomization: blueprint.FilesystemTypedCustomization{
+							FSType:     "ext4",
+							Mountpoint: "/",
+						},
+					},
+					{
+						PartType: "52",
+						FilesystemTypedCustomization: blueprint.FilesystemTypedCustomization{
+							FSType:     "ext4",
+							Mountpoint: "/home",
+						},
+					},
+				},
+			},
+			expectedMsg: "invalid partitioning customizations:\ninvalid partition part_type \"93a9549d-cae1-4024-b95c-e09d77b34c60\" for partition table type \"dos\" (must be a 2-digit hex number)",
 		},
 	}
 
@@ -848,12 +1079,6 @@ func TestPartitioningLayoutConstraints(t *testing.T) {
 		"unhappy-btrfs+lvm": {
 			partitioning: &blueprint.DiskCustomization{
 				Partitions: []blueprint.PartitionCustomization{
-					{
-						Type: "ext4",
-						FilesystemTypedCustomization: blueprint.FilesystemTypedCustomization{
-							Mountpoint: "/data",
-						},
-					},
 					{
 						Type: "btrfs",
 						BtrfsVolumeCustomization: blueprint.BtrfsVolumeCustomization{
@@ -1039,28 +1264,22 @@ func TestPartitionCustomizationUnmarshalJSON(t *testing.T) {
 
 	testCases := map[string]testCase{
 		"nothing": {
-			input: "{}",
-			expected: &blueprint.PartitionCustomization{
-				Type:    "plain",
-				MinSize: 0,
-				FilesystemTypedCustomization: blueprint.FilesystemTypedCustomization{
-					Mountpoint: "",
-					Label:      "",
-					FSType:     "",
-				},
-			},
+			input:    "{}",
+			errorMsg: "minsize is required",
 		},
 		"plain": {
 			input: `{
 				"type": "plain",
 				"minsize": "1 GiB",
+				"part_type": "12345678-1234-1234-1234-1234567890ab",
 				"mountpoint": "/",
 				"label": "root",
 				"fs_type": "xfs"
 			}`,
 			expected: &blueprint.PartitionCustomization{
-				Type:    "plain",
-				MinSize: 1 * datasizes.GiB,
+				Type:     "plain",
+				MinSize:  1 * datasizes.GiB,
+				PartType: "12345678-1234-1234-1234-1234567890ab",
 				FilesystemTypedCustomization: blueprint.FilesystemTypedCustomization{
 					Mountpoint: "/",
 					Label:      "root",
@@ -1090,6 +1309,7 @@ func TestPartitionCustomizationUnmarshalJSON(t *testing.T) {
 			input: `{
 				"type": "btrfs",
 				"minsize": "10 GiB",
+				"part_type": "12345678-1234-1234-1234-1234567890ab",
 				"subvolumes": [
 					{
 						"name": "subvols/root",
@@ -1102,8 +1322,9 @@ func TestPartitionCustomizationUnmarshalJSON(t *testing.T) {
 				]
 			}`,
 			expected: &blueprint.PartitionCustomization{
-				Type:    "btrfs",
-				MinSize: 10 * datasizes.GiB,
+				Type:     "btrfs",
+				MinSize:  10 * datasizes.GiB,
+				PartType: "12345678-1234-1234-1234-1234567890ab",
 				BtrfsVolumeCustomization: blueprint.BtrfsVolumeCustomization{
 					Subvolumes: []blueprint.BtrfsSubvolumeCustomization{
 						{
@@ -1155,6 +1376,7 @@ func TestPartitionCustomizationUnmarshalJSON(t *testing.T) {
 				"type": "lvm",
 				"name": "myvg",
 				"minsize": "99 GiB",
+				"part_type": "12345678-1234-1234-1234-1234567890ab",
 				"logical_volumes": [
 					{
 						"name": "homelv",
@@ -1173,8 +1395,9 @@ func TestPartitionCustomizationUnmarshalJSON(t *testing.T) {
 				]
 			}`,
 			expected: &blueprint.PartitionCustomization{
-				Type:    "lvm",
-				MinSize: 99 * datasizes.GiB,
+				Type:     "lvm",
+				MinSize:  99 * datasizes.GiB,
+				PartType: "12345678-1234-1234-1234-1234567890ab",
 				VGCustomization: blueprint.VGCustomization{
 					Name: "myvg",
 					LogicalVolumes: []blueprint.LVCustomization{
@@ -1266,6 +1489,14 @@ func TestPartitionCustomizationUnmarshalJSON(t *testing.T) {
 			}`,
 			errorMsg: "JSON unmarshal: error decoding minsize for partition: cannot be negative",
 		},
+		"part_type-not-string": {
+			input: `{
+				"minsize": "10 GiB",
+				"mountpoint": "/",
+				"part_type": 12345678
+			}`,
+			errorMsg: "JSON unmarshal: json: cannot unmarshal number into Go struct field .part_type of type string",
+		},
 		"wrong-type/btrfs-with-lvm": {
 			input: `{
 				"type": "btrfs",
@@ -1276,12 +1507,6 @@ func TestPartitionCustomizationUnmarshalJSON(t *testing.T) {
 						"mountpoint": "/home",
 						"label": "home",
 						"fs_type": "ext4"
-					},
-					{
-						"name": "loglv",
-						"mountpoint": "/var/log",
-						"label": "log",
-						"fs_type": "xfs"
 					}
 				]
 			}`,
@@ -1356,16 +1581,8 @@ func TestPartitionCustomizationUnmarshalTOML(t *testing.T) {
 
 	testCases := map[string]testCase{
 		"nothing": {
-			input: "",
-			expected: &blueprint.PartitionCustomization{
-				Type:    "plain",
-				MinSize: 0,
-				FilesystemTypedCustomization: blueprint.FilesystemTypedCustomization{
-					Mountpoint: "",
-					Label:      "",
-					FSType:     "",
-				},
-			},
+			input:    "",
+			errorMsg: "toml: line 0: minsize is required",
 		},
 		"plain": {
 			input: `type = "plain"
@@ -1645,6 +1862,67 @@ func TestPartitionCustomizationUnmarshalTOML(t *testing.T) {
 			} else {
 				assert.EqualError(err, tc.errorMsg)
 			}
+		})
+	}
+}
+
+func TestDiskCustomizationUnmarshalJSON(t *testing.T) {
+	type testCase struct {
+		inputJSON string
+		inputTOML string
+		expected  *blueprint.DiskCustomization
+	}
+
+	testCases := map[string]testCase{
+		"minsize/int": {
+			inputJSON: `{
+				"minsize": 1234
+			}`,
+			inputTOML: "minsize = 1234",
+			expected: &blueprint.DiskCustomization{
+				MinSize: 1234,
+			},
+		},
+		"minsize/str": {
+			inputJSON: `{
+				"minsize": "1234"
+			}`,
+			inputTOML: `minsize = "1234"`,
+			expected: &blueprint.DiskCustomization{
+				MinSize: 1234,
+			},
+		},
+		"minsize/str-with-unit": {
+			inputJSON: `{
+				"minsize": "1 GiB"
+			}`,
+			inputTOML: `minsize = "1 GiB"`,
+			expected: &blueprint.DiskCustomization{
+				MinSize: 1 * datasizes.GiB,
+			},
+		},
+		"type": {
+			inputJSON: `{
+				"type": "gpt"
+			}`,
+			inputTOML: `type = "gpt"`,
+			expected: &blueprint.DiskCustomization{
+				Type: "gpt",
+			},
+		},
+	}
+
+	for name := range testCases {
+		tc := testCases[name]
+		t.Run(name, func(t *testing.T) {
+			var dc blueprint.DiskCustomization
+
+			err := json.Unmarshal([]byte(tc.inputJSON), &dc)
+			require.NoError(t, err)
+			assert.Equal(t, tc.expected, &dc)
+			err = toml.Unmarshal([]byte(tc.inputTOML), &dc)
+			require.NoError(t, err)
+			assert.Equal(t, tc.expected, &dc)
 		})
 	}
 }
