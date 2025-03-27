@@ -237,11 +237,11 @@ func (c *Customizations) GetTimezoneSettings() (*string, []string) {
 }
 
 func (c *Customizations) GetUsers() []UserCustomization {
-	if c == nil {
+	if c == nil || (c.User == nil && c.SSHKey == nil) {
 		return nil
 	}
 
-	users := []UserCustomization{}
+	var users []UserCustomization
 
 	// prepend sshkey for backwards compat (overridden by users)
 	if len(c.SSHKey) > 0 {
