@@ -55,7 +55,7 @@ func (dc *DiskCustomization) UnmarshalTOML(data any) error {
 //     [BtrfsVolumeCustomization] for extra fields.
 type PartitionCustomization struct {
 	// The type of payload for the partition (optional, defaults to "plain").
-	Type string `json:"type" toml:"type"`
+	Type string `json:"type,omitempty" toml:"type,omitempty"`
 
 	// Minimum size of the partition that contains the filesystem (for "plain"
 	// filesystem), volume group ("lvm"), or btrfs volume ("btrfs"). The final
@@ -92,7 +92,7 @@ type PartitionCustomization struct {
 type FilesystemTypedCustomization struct {
 	// Note that it is marked omitempty because the fields of the embedded
 	// structs are optional in the scope of the [PartitionCustomization].
-	Mountpoint string `json:"mountpoint" toml:"mountpoint"`
+	Mountpoint string `json:"mountpoint,omitempty" toml:"mountpoint,omitempty"`
 
 	// Filesystem label
 	Label string `json:"label,omitempty" toml:"label,omitempty"`
