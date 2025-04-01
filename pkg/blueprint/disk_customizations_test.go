@@ -1,6 +1,7 @@
 package blueprint_test
 
 import (
+	"bytes"
 	"encoding/json"
 	"testing"
 
@@ -1857,10 +1858,12 @@ func TestPartitionCustomizationUnmarshalTOML(t *testing.T) {
 			assert := assert.New(t)
 			var pc blueprint.PartitionCustomization
 
-			err := toml.Unmarshal([]byte(tc.input), &pc)
+			dec := toml.NewDecoder(bytes.NewBufferString(tc.input))
+			metadata, err := dec.Decode(&pc)
 			if tc.errorMsg == "" {
 				assert.NoError(err)
 				assert.Equal(tc.expected, &pc)
+				assert.Len(metadata.Undecoded(), 0)
 			} else {
 				assert.EqualError(err, tc.errorMsg)
 			}
@@ -1922,9 +1925,52 @@ func TestDiskCustomizationUnmarshalJSON(t *testing.T) {
 			err := json.Unmarshal([]byte(tc.inputJSON), &dc)
 			require.NoError(t, err)
 			assert.Equal(t, tc.expected, &dc)
-			err = toml.Unmarshal([]byte(tc.inputTOML), &dc)
+			dec := toml.NewDecoder(bytes.NewBufferString(tc.inputTOML))
+			metadata, err := dec.Decode(&dc)
 			require.NoError(t, err)
+			assert.Len(t, metadata.Undecoded(), 0)
 			assert.Equal(t, tc.expected, &dc)
 		})
 	}
+}
+
+func TestPartitionCustomizationTOMLRegressionUndecodedTOML(t *testing.T) {
+	inputTOML := `
+[[customizations.disk.partitions]]
+type = "plain"
+label = "data"
+mountpoint = "/data"
+fs_type = "ext4"
+minsize = "50 GiB"
+
+[[customizations.disk.partitions]]
+type = "lvm"
+name = "mainvg"
+minsize = "20 GiB"
+
+[[customizations.disk.partitions.logical_volumes]]
+name = "rootlv"
+mountpoint = "/"
+label = "root"
+fs_type = "ext4"
+minsize = "2 GiB"
+
+[[customizations.disk.partitions.logical_volumes]]
+name = "homelv"
+mountpoint = "/home"
+label = "home"
+fs_type = "ext4"
+minsize = "2 GiB"
+
+[[customizations.disk.partitions.logical_volumes]]
+name = "swaplv"
+fs_type = "swap"
+minsize = "1 GiB"
+`
+	var dc blueprint.Blueprint
+
+	dec := toml.NewDecoder(bytes.NewBufferString(inputTOML))
+	metadata, err := dec.Decode(&dc)
+	require.NoError(t, err)
+	assert.Len(t, metadata.Undecoded(), 0)
 }
