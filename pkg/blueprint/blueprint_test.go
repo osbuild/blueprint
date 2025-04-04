@@ -1,6 +1,7 @@
 package blueprint
 
 import (
+	"bytes"
 	"encoding/json"
 	"strings"
 	"testing"
@@ -68,8 +69,10 @@ minsize = "20 GiB"
 `
 
 	var bp, bp2 Blueprint
-	err := toml.Unmarshal([]byte(blueprintToml), &bp)
+	dec := toml.NewDecoder(bytes.NewBufferString(blueprintToml))
+	metadata, err := dec.Decode(&bp)
 	require.NoError(t, err)
+	assert.Len(t, metadata.Undecoded(), 0)
 	err = json.Unmarshal([]byte(blueprintJSON), &bp2)
 	require.NoError(t, err)
 	require.Equal(t, bp, bp2)
