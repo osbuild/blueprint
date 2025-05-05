@@ -1974,3 +1974,251 @@ minsize = "1 GiB"
 	require.NoError(t, err)
 	assert.Len(t, metadata.Undecoded(), 0)
 }
+
+func TestGetDiskMinSize(t *testing.T) {
+	type testCase struct {
+		disk         *blueprint.DiskCustomization
+		expectedSize uint64
+	}
+
+	testCases := map[string]testCase{
+		"null": {
+			disk:         nil,
+			expectedSize: 0,
+		},
+		"plain-nosize": {
+			disk: &blueprint.DiskCustomization{
+				Partitions: []blueprint.PartitionCustomization{
+					{
+						FilesystemTypedCustomization: blueprint.FilesystemTypedCustomization{
+							FSType:     "xfs",
+							Mountpoint: "/data",
+						},
+					},
+				},
+			},
+			expectedSize: 0,
+		},
+		"plain-only": {
+			disk: &blueprint.DiskCustomization{
+				Partitions: []blueprint.PartitionCustomization{
+					{
+						MinSize: 11 * datasizes.GiB,
+						FilesystemTypedCustomization: blueprint.FilesystemTypedCustomization{
+							FSType:     "xfs",
+							Mountpoint: "/data",
+						},
+					},
+				},
+			},
+			expectedSize: 11 * datasizes.GiB,
+		},
+		"btrfs-only": {
+			disk: &blueprint.DiskCustomization{
+				Partitions: []blueprint.PartitionCustomization{
+					{
+						Type:    "btrfs",
+						MinSize: 9 * datasizes.GiB,
+						BtrfsVolumeCustomization: blueprint.BtrfsVolumeCustomization{
+							Subvolumes: []blueprint.BtrfsSubvolumeCustomization{
+								{
+									Name:       "root",
+									Mountpoint: "/",
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedSize: 9 * datasizes.GiB,
+		},
+		"plain+big-disk": {
+			disk: &blueprint.DiskCustomization{
+				MinSize: 5 * datasizes.GiB,
+				Partitions: []blueprint.PartitionCustomization{
+					{
+						Type:    "plain",
+						MinSize: 3 * datasizes.GiB,
+						FilesystemTypedCustomization: blueprint.FilesystemTypedCustomization{
+							FSType:     "xfs",
+							Mountpoint: "/data",
+						},
+					},
+				},
+			},
+			expectedSize: 5 * datasizes.GiB,
+		},
+		"plain+small-disk": {
+			disk: &blueprint.DiskCustomization{
+				MinSize: 1 * datasizes.GiB,
+				Partitions: []blueprint.PartitionCustomization{
+					{
+						Type:    "plain",
+						MinSize: 3 * datasizes.GiB,
+						FilesystemTypedCustomization: blueprint.FilesystemTypedCustomization{
+							FSType:     "xfs",
+							Mountpoint: "/data",
+						},
+					},
+					{
+						Type:    "plain",
+						MinSize: 1 * datasizes.GiB,
+						FilesystemTypedCustomization: blueprint.FilesystemTypedCustomization{
+							FSType:     "xfs",
+							Mountpoint: "/",
+						},
+					},
+				},
+			},
+			expectedSize: 4 * datasizes.GiB,
+		},
+		"vg-only": {
+			disk: &blueprint.DiskCustomization{
+				Partitions: []blueprint.PartitionCustomization{
+					{
+						Type:    "lvm",
+						MinSize: 11 * datasizes.GiB,
+					},
+				},
+			},
+			expectedSize: 11 * datasizes.GiB,
+		},
+		"small-vg+lvs": {
+			disk: &blueprint.DiskCustomization{
+				Partitions: []blueprint.PartitionCustomization{
+					{
+						Type:    "lvm",
+						MinSize: 9 * datasizes.GiB,
+						VGCustomization: blueprint.VGCustomization{
+							LogicalVolumes: []blueprint.LVCustomization{
+								{
+									MinSize: 3 * datasizes.GiB,
+								},
+								{
+									MinSize: 4 * datasizes.GiB,
+								},
+								{
+									MinSize: 10 * datasizes.GiB,
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedSize: 17 * datasizes.GiB,
+		},
+		"large-vg+lvs": {
+			disk: &blueprint.DiskCustomization{
+				Partitions: []blueprint.PartitionCustomization{
+					{
+						Type:    "lvm",
+						MinSize: 30 * datasizes.GiB,
+						VGCustomization: blueprint.VGCustomization{
+							LogicalVolumes: []blueprint.LVCustomization{
+								{
+									MinSize: 3 * datasizes.GiB,
+								},
+								{
+									MinSize: 4 * datasizes.GiB,
+								},
+								{
+									MinSize: 10 * datasizes.GiB,
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedSize: 30 * datasizes.GiB,
+		},
+		"small-disk+large-vg+lvs": {
+			disk: &blueprint.DiskCustomization{
+				MinSize: 3 * datasizes.GiB,
+				Partitions: []blueprint.PartitionCustomization{
+					{
+						Type:    "lvm",
+						MinSize: 30 * datasizes.GiB,
+						VGCustomization: blueprint.VGCustomization{
+							LogicalVolumes: []blueprint.LVCustomization{
+								{
+									MinSize: 3 * datasizes.GiB,
+								},
+								{
+									MinSize: 4 * datasizes.GiB,
+								},
+								{
+									MinSize: 10 * datasizes.GiB,
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedSize: 30 * datasizes.GiB,
+		},
+		"large-disk+large-vg+lvs": {
+			disk: &blueprint.DiskCustomization{
+				MinSize: 64 * datasizes.GiB,
+				Partitions: []blueprint.PartitionCustomization{
+					{
+						Type:    "lvm",
+						MinSize: 30 * datasizes.GiB,
+						VGCustomization: blueprint.VGCustomization{
+							LogicalVolumes: []blueprint.LVCustomization{
+								{
+									MinSize: 3 * datasizes.GiB,
+								},
+								{
+									MinSize: 4 * datasizes.GiB,
+								},
+								{
+									MinSize: 10 * datasizes.GiB,
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedSize: 64 * datasizes.GiB,
+		},
+		"lvs+plain": {
+			disk: &blueprint.DiskCustomization{
+				MinSize: 3 * datasizes.GiB,
+				Partitions: []blueprint.PartitionCustomization{
+					{
+						Type:    "plain",
+						MinSize: 3 * datasizes.GiB,
+					},
+					{
+						Type:    "lvm",
+						MinSize: 3 * datasizes.GiB,
+						VGCustomization: blueprint.VGCustomization{
+							LogicalVolumes: []blueprint.LVCustomization{
+								{
+									MinSize: 3 * datasizes.GiB,
+								},
+								{
+									MinSize: 4 * datasizes.GiB,
+								},
+								{
+									MinSize: 10 * datasizes.GiB,
+								},
+							},
+						},
+					},
+				},
+			},
+			expectedSize: 20 * datasizes.GiB,
+		},
+	}
+
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			c := &blueprint.Customizations{
+				Disk: tc.disk,
+			}
+			size := c.GetDiskMinSize()
+			assert.Equal(t, tc.expectedSize, size)
+		})
+	}
+}

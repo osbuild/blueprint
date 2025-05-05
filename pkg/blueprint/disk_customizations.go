@@ -687,3 +687,30 @@ func CheckDiskMountpointsPolicy(partitioning *DiskCustomization, mountpointAllow
 
 	return nil
 }
+
+// GetDiskMinSize calculates the size required to fit all the disk
+// customization options. It returns the Disk MinSize or the sum of all the
+// Partitions, whichever is larger.
+func (c *Customizations) GetDiskMinSize() uint64 {
+	if c == nil || c.Disk == nil {
+		return 0
+	}
+
+	minDiskSize := c.Disk.MinSize
+
+	var sum uint64
+	for _, part := range c.Disk.Partitions {
+		switch part.Type {
+		case "plain", "btrfs", "":
+			sum += part.MinSize
+		case "lvm":
+			var lvSum uint64
+			for _, lv := range part.LogicalVolumes {
+				lvSum += lv.MinSize
+			}
+			sum += max(part.MinSize, lvSum)
+		}
+	}
+
+	return max(sum, minDiskSize)
+}
