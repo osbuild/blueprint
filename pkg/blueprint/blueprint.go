@@ -361,6 +361,9 @@ func Convert(bp Blueprint) iblueprint.Blueprint {
 				ipart := iblueprint.PartitionCustomization{
 					Type:                     part.Type,
 					MinSize:                  part.MinSize,
+					PartType:                 part.PartType,
+					PartLabel:                part.PartLabel,
+					PartUUID:                 part.PartUUID,
 					BtrfsVolumeCustomization: iblueprint.BtrfsVolumeCustomization{},
 					VGCustomization: iblueprint.VGCustomization{
 						Name: part.VGCustomization.Name,
