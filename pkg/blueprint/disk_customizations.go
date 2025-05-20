@@ -20,7 +20,7 @@ type DiskCustomization struct {
 	// Optional, the default depends on the distro and image type.
 	Type       string                   `json:"type,omitempty" toml:"type,omitempty"`
 	MinSize    uint64                   `json:"minsize,omitempty" toml:"minsize,omitempty"`
-	Partitions []PartitionCustomization `json:"partitions,omitempty" toml:"minsize,omitempty"`
+	Partitions []PartitionCustomization `json:"partitions,omitempty" toml:"partitions,omitempty"`
 }
 
 type diskCustomizationMarshaler struct {
