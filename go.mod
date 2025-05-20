@@ -6,7 +6,7 @@ require (
 	github.com/BurntSushi/toml v1.5.1-0.20250403130103-3d3abc24416a
 	github.com/coreos/go-semver v0.3.1
 	github.com/google/uuid v1.6.0
-	github.com/osbuild/images v0.131.0
+	github.com/osbuild/images v0.147.0
 	github.com/stretchr/testify v1.10.0
 )
 
