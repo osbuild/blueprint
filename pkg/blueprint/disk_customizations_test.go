@@ -2031,8 +2031,7 @@ func TestDiskCustomizationUnmarshalJSON(t *testing.T) {
 	}
 }
 
-func TestPartitionCustomizationTOMLRegressionUndecodedTOML(t *testing.T) {
-	inputTOML := `
+var inputTOML = `
 [[customizations.disk.partitions]]
 type = "plain"
 label = "data"
@@ -2064,10 +2063,31 @@ name = "swaplv"
 fs_type = "swap"
 minsize = "1 GiB"
 `
+
+func TestPartitionCustomizationTOMLRegressionUndecodedTOML(t *testing.T) {
 	var dc blueprint.Blueprint
 
 	dec := toml.NewDecoder(bytes.NewBufferString(inputTOML))
 	metadata, err := dec.Decode(&dc)
 	require.NoError(t, err)
 	assert.Len(t, metadata.Undecoded(), 0)
+}
+
+func TestMarshalUnmarshalTOML(t *testing.T) {
+	var dc blueprint.Blueprint
+
+	dec := toml.NewDecoder(bytes.NewBufferString(inputTOML))
+	_, err := dec.Decode(&dc)
+	require.NoError(t, err)
+
+	// marshal/unmarshal again to ensure we get the same blueprint,
+	// ideally we would just marshal and compare the inputTOML string
+	// with the newly encoded value but the TOML lib encodes very
+	// differently and the exact spacing does not matter
+	enc, err := toml.Marshal(dc)
+	require.NoError(t, err)
+	var dc2 blueprint.Blueprint
+	err = toml.Unmarshal(enc, &dc2)
+	require.NoError(t, err)
+	assert.Equal(t, dc, dc2)
 }
