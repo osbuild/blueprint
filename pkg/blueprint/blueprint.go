@@ -26,7 +26,7 @@ type Blueprint struct {
 
 	Groups         []Group         `json:"groups" toml:"groups"`
 	Containers     []Container     `json:"containers,omitempty" toml:"containers,omitempty"`
-	Customizations *Customizations `json:"customizations,omitempty" toml:"customizations"`
+	Customizations *Customizations `json:"customizations,omitempty" toml:"customizations,omitempty"`
 	Distro         string          `json:"distro" toml:"distro"`
 	Arch           string          `json:"architecture,omitempty" toml:"architecture,omitempty"`
 
