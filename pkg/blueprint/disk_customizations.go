@@ -20,7 +20,7 @@ type DiskCustomization struct {
 	// Type of the partition table: gpt or dos.
 	// Optional, the default depends on the distro and image type.
 	Type       string                   `json:"type,omitempty" toml:"type,omitempty"`
-	MinSize    uint64                   `json:"minsize,omitempty" toml:"minsize,omitempty"`
+	MinSize    uint64                   `json:"minsize,omitempty,omitzero" toml:"minsize,omitempty,omitzero"`
 	Partitions []PartitionCustomization `json:"partitions,omitempty" toml:"partitions,omitempty"`
 }
 
@@ -65,7 +65,7 @@ type PartitionCustomization struct {
 	// addition, certain mountpoints have required minimum sizes. See
 	// https://osbuild.org/docs/user-guide/partitioning for more details.
 	// (optional, defaults depend on payload and mountpoints).
-	MinSize uint64 `json:"minsize" toml:"minsize"`
+	MinSize uint64 `json:"minsize,omitempty,omitzero" toml:"minsize,omitempty,omitzero"`
 
 	// The partition type GUID for GPT partitions. For DOS partitions, this
 	// field can be used to set the (2 hex digit) partition type.
@@ -126,7 +126,7 @@ type LVCustomization struct {
 	Name string `json:"name,omitempty" toml:"name,omitempty"`
 
 	// Minimum size of the logical volume
-	MinSize uint64 `json:"minsize,omitempty" toml:"minsize,omitempty"`
+	MinSize uint64 `json:"minsize,omitempty,omitzero" toml:"minsize,omitempty,omitzero"`
 
 	FilesystemTypedCustomization
 }
