@@ -357,6 +357,10 @@ func Convert(bp Blueprint) iblueprint.Blueprint {
 				MinSize:    disk.MinSize,
 				Partitions: make([]iblueprint.PartitionCustomization, len(disk.Partitions)),
 			}
+			if disk.GenerateMounts != nil {
+				idisk.GenerateMounts = common.ToPtr(iblueprint.GenerateMounts(*disk.GenerateMounts))
+			}
+
 			for idx, part := range disk.Partitions {
 				ipart := iblueprint.PartitionCustomization{
 					Type:                     part.Type,
