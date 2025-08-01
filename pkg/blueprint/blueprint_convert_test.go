@@ -130,6 +130,7 @@ func TestConvert(t *testing.T) {
 						},
 					},
 					Disk: &DiskCustomization{
+						Type:    "dos",
 						MinSize: 10240,
 						Partitions: []PartitionCustomization{
 							{
@@ -447,6 +448,7 @@ func TestConvert(t *testing.T) {
 						},
 					},
 					Disk: &iblueprint.DiskCustomization{
+						Type:    "dos",
 						MinSize: 10240,
 						Partitions: []iblueprint.PartitionCustomization{
 							{
