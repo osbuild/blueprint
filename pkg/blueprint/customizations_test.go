@@ -7,7 +7,6 @@ import (
 
 	"github.com/osbuild/blueprint/internal/common"
 	"github.com/osbuild/images/pkg/customizations/anaconda"
-	"github.com/osbuild/images/pkg/disk/partition"
 	"github.com/osbuild/images/pkg/rpmmd"
 )
 
@@ -325,14 +324,14 @@ func TestGetPartitioningMode(t *testing.T) {
 	var c *Customizations
 	pm, err := c.GetPartitioningMode()
 	assert.NoError(t, err)
-	assert.Equal(t, partition.DefaultPartitioningMode, pm)
+	assert.Equal(t, DefaultPartitioningMode, pm)
 
 	// Empty defaults to Default which is actually AutoLVM,
 	// but that is handled by the images code
 	c = &Customizations{}
 	_, err = c.GetPartitioningMode()
 	assert.NoError(t, err)
-	assert.Equal(t, partition.DefaultPartitioningMode, pm)
+	assert.Equal(t, DefaultPartitioningMode, pm)
 
 	// Unknown mode returns an error
 	c = &Customizations{
@@ -347,7 +346,7 @@ func TestGetPartitioningMode(t *testing.T) {
 	}
 	pm, err = c.GetPartitioningMode()
 	assert.NoError(t, err)
-	assert.Equal(t, partition.LVMPartitioningMode, pm)
+	assert.Equal(t, LVMPartitioningMode, pm)
 }
 
 func TestGetRHSM(t *testing.T) {
