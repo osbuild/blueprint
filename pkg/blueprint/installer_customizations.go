@@ -5,6 +5,7 @@ type InstallerCustomization struct {
 	SudoNopasswd []string         `json:"sudo-nopasswd,omitempty" toml:"sudo-nopasswd,omitempty"`
 	Kickstart    *Kickstart       `json:"kickstart,omitempty" toml:"kickstart,omitempty"`
 	Modules      *AnacondaModules `json:"modules,omitempty" toml:"modules,omitempty"`
+	MenuTimeout  *int             `json:"menu-timeout,omitempty" toml:"menu-timeout,omitempty"`
 }
 
 type Kickstart struct {
