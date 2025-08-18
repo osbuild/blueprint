@@ -4,11 +4,14 @@ go 1.23.9
 
 toolchain go1.24.2
 
+// temporary fix until images is upgraded out of toml 1.5.1 beta version: https://github.com/osbuild/blueprint/pull/30
+replace github.com/osbuild/images v0.161.0 => github.com/osbuild/images v0.176.0
+
 require (
-	github.com/BurntSushi/toml v1.5.1-0.20250403130103-3d3abc24416a
+	github.com/BurntSushi/toml v1.5.0
 	github.com/coreos/go-semver v0.3.1
 	github.com/google/uuid v1.6.0
-	github.com/osbuild/images v0.171.0
+	github.com/osbuild/images v0.161.0
 	github.com/stretchr/testify v1.10.0
 )
 
