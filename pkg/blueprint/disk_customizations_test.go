@@ -39,6 +39,20 @@ func TestPartitioningValidation(t *testing.T) {
 			},
 			expectedMsg: "",
 		},
+		"happy-plain+offset": {
+			partitioning: &blueprint.DiskCustomization{
+				StartOffset: 8 * datasizes.MiB,
+				Partitions: []blueprint.PartitionCustomization{
+					{
+						FilesystemTypedCustomization: blueprint.FilesystemTypedCustomization{
+							FSType:     "xfs",
+							Mountpoint: "/data",
+						},
+					},
+				},
+			},
+			expectedMsg: "",
+		},
 		"happy-plain+btrfs+swap": {
 			partitioning: &blueprint.DiskCustomization{
 				Partitions: []blueprint.PartitionCustomization{
@@ -2020,6 +2034,33 @@ func TestDiskCustomizationUnmarshalJSON(t *testing.T) {
 			inputTOML: `minsize = "1 GiB"`,
 			expected: &blueprint.DiskCustomization{
 				MinSize: 1 * datasizes.GiB,
+			},
+		},
+		"start_offset/int": {
+			inputJSON: `{
+				"start_offset": 1234
+			}`,
+			inputTOML: "start_offset = 1234",
+			expected: &blueprint.DiskCustomization{
+				StartOffset: 1234,
+			},
+		},
+		"start_offset/str": {
+			inputJSON: `{
+				"start_offset": "1234"
+			}`,
+			inputTOML: `start_offset = "1234"`,
+			expected: &blueprint.DiskCustomization{
+				StartOffset: 1234,
+			},
+		},
+		"start_offset/str-with-unit": {
+			inputJSON: `{
+				"start_offset": "1 GiB"
+			}`,
+			inputTOML: `start_offset = "1 GiB"`,
+			expected: &blueprint.DiskCustomization{
+				StartOffset: 1 * datasizes.GiB,
 			},
 		},
 		"type": {
