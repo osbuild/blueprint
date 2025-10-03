@@ -20,6 +20,7 @@ type DiskCustomization struct {
 	// Type of the partition table: gpt or dos.
 	// Optional, the default depends on the distro and image type.
 	Type        string                   `json:"type,omitempty" toml:"type,omitempty"`
+	BootMode    string                   `json:"bootmode,omitempty" toml:"bootmode,omitempty"`
 	MinSize     uint64                   `json:"minsize,omitempty,omitzero" toml:"minsize,omitempty,omitzero"`
 	Partitions  []PartitionCustomization `json:"partitions,omitempty" toml:"partitions,omitempty"`
 	StartOffset uint64                   `json:"start_offset,omitempty" toml:"start_offset,omitempty"`
@@ -27,6 +28,7 @@ type DiskCustomization struct {
 
 type diskCustomizationMarshaler struct {
 	Type        string                   `json:"type,omitempty" toml:"type,omitempty"`
+	BootMode    string                   `json:"bootmode,omitempty" toml:"bootmode,omitempty"`
 	MinSize     datasizes.Size           `json:"minsize,omitempty" toml:"minsize,omitempty"`
 	Partitions  []PartitionCustomization `json:"partitions,omitempty" toml:"partitions,omitempty"`
 	StartOffset datasizes.Size           `json:"start_offset,omitempty" toml:"start_offset,omitempty"`
@@ -36,6 +38,9 @@ func (dc *DiskCustomization) UnmarshalJSON(data []byte) error {
 	var dcm diskCustomizationMarshaler
 	if err := json.Unmarshal(data, &dcm); err != nil {
 		return err
+	}
+	if dcm.BootMode != "" {
+		dc.BootMode = dcm.BootMode
 	}
 	dc.Type = dcm.Type
 	dc.MinSize = dcm.MinSize.Uint64()
