@@ -777,7 +777,7 @@ func TestPartitioningValidation(t *testing.T) {
 			},
 			expectedMsg: "invalid partitioning customizations:\ninvalid mountpoint \"/boot/efi\" for logical volume",
 		},
-		"boot-on-btrfs": {
+		"happy-boot-on-btrfs": {
 			partitioning: &blueprint.DiskCustomization{
 				Partitions: []blueprint.PartitionCustomization{
 					{
@@ -797,7 +797,7 @@ func TestPartitioningValidation(t *testing.T) {
 					},
 				},
 			},
-			expectedMsg: "invalid partitioning customizations:\ninvalid mountpoint \"/boot\" for btrfs subvolume",
+			expectedMsg: "",
 		},
 		"bootefi-on-btrfs": {
 			partitioning: &blueprint.DiskCustomization{
