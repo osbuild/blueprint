@@ -379,6 +379,21 @@ func TestGetRHSM(t *testing.T) {
 	assert.EqualValues(t, expectedRHSM, *retRHSMCustomizations)
 }
 
+func TestGetISO(t *testing.T) {
+	expectedISO := ISOCustomization{
+		ApplicationID: "FEDORA-WORKSTATION-LIVE-43",
+		Publisher:     "FEDORA PROJECT",
+		VolumeID:      "Fedora-WS-Live-42",
+	}
+
+	testCustomizations := Customizations{
+		ISO: &expectedISO,
+	}
+
+	retISOCustomizations := testCustomizations.GetISO()
+	assert.EqualValues(t, expectedISO, *retISOCustomizations)
+}
+
 func TestGetInstallerErrors(t *testing.T) {
 	type testCase struct {
 		customizations Customizations
