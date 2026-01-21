@@ -178,7 +178,11 @@ func TestNoCustomizationsInBlueprint(t *testing.T) {
 
 	assert.Nil(t, TestBP.Customizations.GetHostname())
 	assert.Nil(t, TestBP.Customizations.GetUsers())
-	assert.Nil(t, TestBP.Customizations.GetGroups())
+
+	groups, err := TestBP.Customizations.GetGroups()
+	assert.NoError(t, err)
+	assert.Nil(t, groups)
+
 	assert.Equal(t, &KernelCustomization{Name: "kernel"}, TestBP.Customizations.GetKernel())
 	assert.Nil(t, TestBP.Customizations.GetFirewall())
 	assert.Nil(t, TestBP.Customizations.GetServices())
