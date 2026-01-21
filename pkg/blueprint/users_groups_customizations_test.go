@@ -3,6 +3,7 @@ package blueprint
 import (
 	"testing"
 
+	"github.com/osbuild/blueprint/internal/common"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -64,19 +65,51 @@ func TestGetUsers(t *testing.T) {
 }
 
 func TestGetGroups(t *testing.T) {
-	GID := 1234
-	expectedGroups := []GroupCustomization{
-		{
-			Name: "TestGroup",
-			GID:  &GID,
+	type testCase struct {
+		groups []GroupCustomization
+	}
+
+	testCases := map[string]testCase{
+		"nil": {
+			groups: nil,
+		},
+		"none": {
+			groups: []GroupCustomization{},
+		},
+		"single": {
+			groups: []GroupCustomization{
+				{
+					Name: "TestGroup",
+					GID:  common.ToPtr(1234),
+				},
+			},
+		},
+		"multi": {
+			groups: []GroupCustomization{
+				{
+					Name: "TestGroup",
+					GID:  common.ToPtr(1234),
+				},
+				{
+					Name: "sysgrp",
+					GID:  common.ToPtr(998),
+				},
+				{
+					Name: "wheel",
+					GID:  common.ToPtr(42),
+				},
+			},
 		},
 	}
 
-	TestCustomizations := Customizations{
-		Group: expectedGroups,
+	for name, tc := range testCases {
+		t.Run(name, func(t *testing.T) {
+			c := Customizations{
+				Group: tc.groups,
+			}
+
+			groups := c.GetGroups()
+			assert.ElementsMatch(t, tc.groups, groups)
+		})
 	}
-
-	retGroups := TestCustomizations.GetGroups()
-
-	assert.ElementsMatch(t, expectedGroups, retGroups)
 }
