@@ -1,6 +1,10 @@
 package blueprint
 
-import "strings"
+import (
+	"errors"
+	"fmt"
+	"strings"
+)
 
 func (c *Customizations) GetUsers() []UserCustomization {
 	if c == nil || (c.User == nil && c.SSHKey == nil) {
@@ -35,10 +39,43 @@ func (c *Customizations) GetUsers() []UserCustomization {
 	return users
 }
 
-func (c *Customizations) GetGroups() []GroupCustomization {
-	if c == nil {
-		return nil
+type GroupsCustomization []GroupCustomization
+
+func (g GroupsCustomization) Validate() error {
+	names := make(map[string]bool)
+	gids := make(map[int]bool)
+
+	errs := make([]error, 0)
+
+	for _, group := range g {
+		if names[group.Name] {
+			errs = append(errs, fmt.Errorf("duplicate group name: %s", group.Name))
+		}
+		names[group.Name] = true
+
+		if group.GID != nil {
+			if gids[*group.GID] {
+				errs = append(errs, fmt.Errorf("duplicate group ID: %d", *group.GID))
+			}
+			gids[*group.GID] = true
+		}
 	}
 
-	return c.Group
+	if err := errors.Join(errs...); err != nil {
+		return fmt.Errorf("invalid group customizations:\n%w", err)
+	}
+
+	return nil
+}
+
+func (c *Customizations) GetGroups() (GroupsCustomization, error) {
+	if c == nil {
+		return nil, nil
+	}
+
+	if err := c.Group.Validate(); err != nil {
+		return nil, err
+	}
+
+	return c.Group, nil
 }

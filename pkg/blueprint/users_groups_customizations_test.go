@@ -108,7 +108,8 @@ func TestGetGroups(t *testing.T) {
 				Group: tc.groups,
 			}
 
-			groups := c.GetGroups()
+			groups, err := c.GetGroups()
+			assert.NoError(t, err)
 			assert.ElementsMatch(t, tc.groups, groups)
 		})
 	}

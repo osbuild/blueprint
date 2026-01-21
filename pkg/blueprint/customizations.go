@@ -14,7 +14,7 @@ type Customizations struct {
 	Kernel             *KernelCustomization           `json:"kernel,omitempty" toml:"kernel,omitempty"`
 	SSHKey             []SSHKeyCustomization          `json:"sshkey,omitempty" toml:"sshkey,omitempty"`
 	User               []UserCustomization            `json:"user,omitempty" toml:"user,omitempty"`
-	Group              []GroupCustomization           `json:"group,omitempty" toml:"group,omitempty"`
+	Group              GroupsCustomization            `json:"group,omitempty" toml:"group,omitempty"`
 	Timezone           *TimezoneCustomization         `json:"timezone,omitempty" toml:"timezone,omitempty"`
 	Locale             *LocaleCustomization           `json:"locale,omitempty" toml:"locale,omitempty"`
 	Firewall           *FirewallCustomization         `json:"firewall,omitempty" toml:"firewall,omitempty"`
