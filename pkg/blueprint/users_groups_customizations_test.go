@@ -66,7 +66,8 @@ func TestGetUsers(t *testing.T) {
 
 func TestGetGroups(t *testing.T) {
 	type testCase struct {
-		groups []GroupCustomization
+		groups               []GroupCustomization
+		expectedErrorMessage string
 	}
 
 	testCases := map[string]testCase{
@@ -100,17 +101,102 @@ func TestGetGroups(t *testing.T) {
 				},
 			},
 		},
+		"duplicate-names": {
+			groups: []GroupCustomization{
+				{
+					Name: "TestGroup",
+					GID:  common.ToPtr(1234),
+				},
+				{
+					Name: "sysgrp",
+					GID:  common.ToPtr(998),
+				},
+				{
+					Name: "wheel",
+					GID:  common.ToPtr(42),
+				},
+				{
+					Name: "wheel",
+					GID:  common.ToPtr(43),
+				},
+			},
+			expectedErrorMessage: "invalid group customizations:\nduplicate group name: wheel",
+		},
+		"duplicate-gids": {
+			groups: []GroupCustomization{
+				{
+					Name: "TestGroup",
+					GID:  common.ToPtr(1234),
+				},
+				{
+					Name: "sysgrp",
+					GID:  common.ToPtr(42),
+				},
+				{
+					Name: "wheel",
+					GID:  common.ToPtr(42),
+				},
+			},
+			expectedErrorMessage: "invalid group customizations:\nduplicate group ID: 42",
+		},
+		"duplicate-both": {
+			groups: []GroupCustomization{
+				{
+					Name: "TestGroup",
+					GID:  common.ToPtr(1234),
+				},
+				{
+					Name: "wheel",
+					GID:  common.ToPtr(42),
+				},
+				{
+					Name: "wheel",
+					GID:  common.ToPtr(42),
+				},
+			},
+			expectedErrorMessage: "invalid group customizations:\nduplicate group name: wheel\nduplicate group ID: 42",
+		},
+		"duplicate-multi": {
+			groups: []GroupCustomization{
+				{
+					Name: "test",
+					GID:  common.ToPtr(1234),
+				},
+				{
+					Name: "wheel",
+					GID:  common.ToPtr(42),
+				},
+				{
+					Name: "wheel",
+					GID:  common.ToPtr(42),
+				},
+				{
+					Name: "user",
+					GID:  common.ToPtr(1234),
+				},
+				{
+					Name: "test",
+					GID:  common.ToPtr(4321),
+				},
+			},
+			expectedErrorMessage: "invalid group customizations:\nduplicate group name: wheel\nduplicate group ID: 42\nduplicate group ID: 1234\nduplicate group name: test",
+		},
 	}
 
 	for name, tc := range testCases {
 		t.Run(name, func(t *testing.T) {
+			assert := assert.New(t)
 			c := Customizations{
 				Group: tc.groups,
 			}
 
 			groups, err := c.GetGroups()
-			assert.NoError(t, err)
-			assert.ElementsMatch(t, tc.groups, groups)
+			if tc.expectedErrorMessage != "" {
+				assert.EqualError(err, tc.expectedErrorMessage)
+			} else {
+				assert.NoError(err)
+				assert.ElementsMatch(tc.groups, groups)
+			}
 		})
 	}
 }
