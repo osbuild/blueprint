@@ -319,8 +319,26 @@ func TestGetISO(t *testing.T) {
 		ISO: &expectedISO,
 	}
 
-	retISOCustomizations := testCustomizations.GetISO()
+	retISOCustomizations, err := testCustomizations.GetISO()
+
+	assert.NoError(t, err)
 	assert.EqualValues(t, expectedISO, *retISOCustomizations)
+}
+
+func TestGetISOFaultyVolumeID(t *testing.T) {
+	expectedISO := ISOCustomization{
+		ApplicationID: "FEDORA-WORKSTATION-LIVE-43",
+		Publisher:     "FEDORA PROJECT",
+		VolumeID:      "TEST OS",
+	}
+
+	testCustomizations := Customizations{
+		ISO: &expectedISO,
+	}
+
+	_, err := testCustomizations.GetISO()
+
+	assert.Error(t, err)
 }
 
 func TestGetInstallerErrors(t *testing.T) {
