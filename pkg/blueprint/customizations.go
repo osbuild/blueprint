@@ -414,12 +414,16 @@ func (c *Customizations) GetInstaller() (*InstallerCustomization, error) {
 	return c.Installer, nil
 }
 
-func (c *Customizations) GetISO() *ISOCustomization {
-	if c == nil {
-		return nil
+func (c *Customizations) GetISO() (*ISOCustomization, error) {
+	if c == nil || c.ISO == nil {
+		return nil, nil
 	}
 
-	return c.ISO
+	if err := validateVolumeID(c.ISO.VolumeID); err != nil {
+		return nil, err
+	}
+
+	return c.ISO, nil
 }
 
 func (c *Customizations) GetRPM() *RPMCustomization {
