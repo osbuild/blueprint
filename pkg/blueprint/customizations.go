@@ -51,6 +51,7 @@ type EmbeddedIgnitionCustomization struct {
 
 type FirstBootIgnitionCustomization struct {
 	ProvisioningURL string `json:"url,omitempty" toml:"url,omitempty"`
+	Empty           bool   `json:"empty,omitempty" toml:"empty,omitempty"`
 }
 
 type FDOCustomization struct {
@@ -334,11 +335,16 @@ func (c *Customizations) GetOpenSCAP() *OpenSCAPCustomization {
 	return c.OpenSCAP
 }
 
-func (c *Customizations) GetIgnition() *IgnitionCustomization {
+func (c *Customizations) GetIgnition() (*IgnitionCustomization, error) {
 	if c == nil {
-		return nil
+		return nil, nil
 	}
-	return c.Ignition
+	if c.Ignition != nil && c.Ignition.FirstBoot != nil {
+		if c.Ignition.FirstBoot.Empty && c.Ignition.FirstBoot.ProvisioningURL != "" {
+			return nil, fmt.Errorf("ignition.firstboot.url is mutually exclusive with ignition.firstboot.empty")
+		}
+	}
+	return c.Ignition, nil
 }
 
 func (c *Customizations) GetDirectories() []DirectoryCustomization {

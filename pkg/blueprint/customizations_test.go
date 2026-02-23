@@ -427,6 +427,87 @@ func TestGetInstallerErrors(t *testing.T) {
 	}
 }
 
+func TestGetIgnition(t *testing.T) {
+	type testCase struct {
+		customizations *Customizations
+		expected       *IgnitionCustomization
+		expectedErr    string
+	}
+
+	testCases := map[string]testCase{
+		"firstboot-url-only": {
+			customizations: &Customizations{
+				Ignition: &IgnitionCustomization{
+					FirstBoot: &FirstBootIgnitionCustomization{
+						ProvisioningURL: "http://example.com",
+					},
+				},
+			},
+			expected: &IgnitionCustomization{
+				FirstBoot: &FirstBootIgnitionCustomization{
+					ProvisioningURL: "http://example.com",
+				},
+			},
+		},
+		"firstboot-empty": {
+			customizations: &Customizations{
+				Ignition: &IgnitionCustomization{
+					FirstBoot: &FirstBootIgnitionCustomization{
+						Empty: true,
+					},
+				},
+			},
+			expected: &IgnitionCustomization{
+				FirstBoot: &FirstBootIgnitionCustomization{
+					Empty: true,
+				},
+			},
+		},
+		"firstboot-empty-and-url-mutually-exclusive": {
+			customizations: &Customizations{
+				Ignition: &IgnitionCustomization{
+					FirstBoot: &FirstBootIgnitionCustomization{
+						ProvisioningURL: "http://example.com",
+						Empty:           true,
+					},
+				},
+			},
+			expectedErr: "ignition.firstboot.url is mutually exclusive with ignition.firstboot.empty",
+		},
+		"firstboot-empty-false-with-url": {
+			customizations: &Customizations{
+				Ignition: &IgnitionCustomization{
+					FirstBoot: &FirstBootIgnitionCustomization{
+						ProvisioningURL: "http://example.com",
+						Empty:           false,
+					},
+				},
+			},
+			expected: &IgnitionCustomization{
+				FirstBoot: &FirstBootIgnitionCustomization{
+					ProvisioningURL: "http://example.com",
+					Empty:           false,
+				},
+			},
+		},
+	}
+
+	for name := range testCases {
+		tc := testCases[name]
+		t.Run(name, func(t *testing.T) {
+			assert := assert.New(t)
+			ignition, err := tc.customizations.GetIgnition()
+			if tc.expectedErr == "" {
+				assert.NoError(err)
+				assert.Equal(tc.expected, ignition)
+			} else {
+				assert.Nil(ignition)
+				assert.EqualError(err, tc.expectedErr)
+			}
+		})
+	}
+}
+
 func TestGetImportRPMGPGKey(t *testing.T) {
 	expectedRPM := RPMCustomization{
 		ImportKeys: &RPMImportKeys{
