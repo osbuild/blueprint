@@ -341,6 +341,23 @@ func TestGetISOFaultyVolumeID(t *testing.T) {
 	assert.Error(t, err)
 }
 
+func TestGetSshd(t *testing.T) {
+	expectedSshd := SshdCustomization{
+		PasswordAuthentication:          common.ToPtr(true),
+		ChallengeResponseAuthentication: common.ToPtr(false),
+		ClientAliveInterval:             common.ToPtr(120),
+		PermitRootLogin:                 common.ToPtr(true),
+	}
+
+	testCustomizations := Customizations{
+		Sshd: &expectedSshd,
+	}
+
+	retSshdCustomizations := testCustomizations.GetSshd()
+
+	assert.EqualValues(t, expectedSshd, *retSshdCustomizations)
+}
+
 func TestGetInstallerErrors(t *testing.T) {
 	type testCase struct {
 		customizations Customizations

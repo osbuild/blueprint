@@ -38,6 +38,7 @@ type Customizations struct {
 	Firstboot          *FirstbootCustomization        `json:"firstboot,omitempty" toml:"firstboot,omitempty"`
 	DNF                *DNFCustomization              `json:"dnf,omitempty" toml:"dnf,omitempty"`
 	ISO                *ISOCustomization              `json:"iso,omitempty" toml:"iso,omitempty"`
+	Sshd               *SshdCustomization             `json:"sshd,omitempty" toml:"sshd,omitempty"`
 }
 
 type IgnitionCustomization struct {
@@ -430,6 +431,14 @@ func (c *Customizations) GetISO() (*ISOCustomization, error) {
 	}
 
 	return c.ISO, nil
+}
+
+func (c *Customizations) GetSshd() *SshdCustomization {
+	if c == nil {
+		return nil
+	}
+
+	return c.Sshd
 }
 
 func (c *Customizations) GetRPM() *RPMCustomization {
