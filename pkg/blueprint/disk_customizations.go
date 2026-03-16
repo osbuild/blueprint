@@ -20,9 +20,9 @@ type DiskCustomization struct {
 	// Type of the partition table: gpt or dos.
 	// Optional, the default depends on the distro and image type.
 	Type        string                   `json:"type,omitempty" toml:"type,omitempty"`
-	MinSize     uint64                   `json:"minsize,omitempty,omitzero" toml:"minsize,omitempty,omitzero"`
+	MinSize     float64                  `json:"minsize,omitempty,omitzero" toml:"minsize,omitempty,omitzero"`
 	Partitions  []PartitionCustomization `json:"partitions,omitempty" toml:"partitions,omitempty"`
-	StartOffset uint64                   `json:"start_offset,omitempty" toml:"start_offset,omitempty"`
+	StartOffset float64                  `json:"start_offset,omitempty" toml:"start_offset,omitempty"`
 }
 
 type diskCustomizationMarshaler struct {
@@ -38,9 +38,9 @@ func (dc *DiskCustomization) UnmarshalJSON(data []byte) error {
 		return err
 	}
 	dc.Type = dcm.Type
-	dc.MinSize = dcm.MinSize.Uint64()
+	dc.MinSize = dcm.MinSize.Float64()
 	dc.Partitions = dcm.Partitions
-	dc.StartOffset = dcm.StartOffset.Uint64()
+	dc.StartOffset = dcm.StartOffset.Float64()
 
 	return nil
 }
@@ -68,7 +68,7 @@ type PartitionCustomization struct {
 	// addition, certain mountpoints have required minimum sizes. See
 	// https://osbuild.org/docs/user-guide/partitioning for more details.
 	// This field is required.
-	MinSize uint64 `json:"minsize,omitempty,omitzero" toml:"minsize,omitempty,omitzero"`
+	MinSize float64 `json:"minsize,omitempty,omitzero" toml:"minsize,omitempty,omitzero"`
 
 	// The partition type GUID for GPT partitions. For DOS partitions, this
 	// field can be used to set the (2 hex digit) partition type.
@@ -129,7 +129,7 @@ type LVCustomization struct {
 	Name string `json:"name,omitempty" toml:"name,omitempty"`
 
 	// Minimum size of the logical volume
-	MinSize uint64 `json:"minsize,omitempty,omitzero" toml:"minsize,omitempty,omitzero"`
+	MinSize float64 `json:"minsize,omitempty,omitzero" toml:"minsize,omitempty,omitzero"`
 
 	FilesystemTypedCustomization
 }

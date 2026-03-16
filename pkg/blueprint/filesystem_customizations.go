@@ -9,10 +9,10 @@ import (
 )
 
 type FilesystemCustomization struct {
-	Mountpoint string `json:"mountpoint,omitempty" toml:"mountpoint,omitempty"`
-	MinSize    uint64 `json:"minsize,omitempty" toml:"minsize,omitempty"`
+	Mountpoint string  `json:"mountpoint,omitempty" toml:"mountpoint,omitempty"`
+	MinSize    float64 `json:"minsize,omitempty" toml:"minsize,omitempty"`
 
-	// Note: The TOML `size` tag has been deprecated in favor of `minsize`.
+	// Note: The TOML `size` tag has been deprecated in favor of `minsize`.https://github.com/osbuild/blueprint/pull/45
 	// we check for it in the TOML unmarshaler and use it as `minsize`.
 	// However due to the TOML marshaler implementation, we can omit adding
 	// a field for this tag and get the benifit of not having to export it.
@@ -28,15 +28,17 @@ func (fsc *FilesystemCustomization) UnmarshalTOML(data interface{}) error {
 		return fmt.Errorf("TOML unmarshal: mountpoint must be string, got %v of type %T", d["mountpoint"], d["mountpoint"])
 	}
 
-	var size uint64
-	var minsize uint64
+	var size float64
+	var minsize float64
 
 	// `size` is an alias for `minsize. We check for the `size` keyword
 	// for backwards compatibility. We don't export a `Size` field as
 	// we would like to discourage its use.
 	switch d["size"].(type) {
 	case int64:
-		size = uint64(d["size"].(int64))
+		size = float64(d["size"].(int64))
+	case float64:
+		size = float64(d["size"].(float64))
 	case string:
 		s, err := datasizes.Parse(d["size"].(string))
 		if err != nil {
@@ -51,7 +53,9 @@ func (fsc *FilesystemCustomization) UnmarshalTOML(data interface{}) error {
 
 	switch d["minsize"].(type) {
 	case int64:
-		minsize = uint64(d["minsize"].(int64))
+		minsize = float64(d["minsize"].(int64))
+	case float64:
+		fsc.MinSize = d["minsize"].(float64)
 	case string:
 		s, err := datasizes.Parse(d["minsize"].(string))
 		if err != nil {
@@ -103,7 +107,7 @@ func (fsc *FilesystemCustomization) UnmarshalJSON(data []byte) error {
 	switch d["minsize"].(type) {
 	case float64:
 		// Note that it uses different key than the TOML version
-		fsc.MinSize = uint64(d["minsize"].(float64))
+		fsc.MinSize = d["minsize"].(float64)
 	case string:
 		size, err := datasizes.Parse(d["minsize"].(string))
 		if err != nil {
@@ -119,7 +123,7 @@ func (fsc *FilesystemCustomization) UnmarshalJSON(data []byte) error {
 
 // decodeSize takes an integer or string representing a data size (with a data
 // suffix) and returns the uint64 representation.
-func decodeSize(size any) (uint64, error) {
+func decodeSize(size any) (float64, error) {
 	switch s := size.(type) {
 	case string:
 		return datasizes.Parse(s)
@@ -127,15 +131,15 @@ func decodeSize(size any) (uint64, error) {
 		if s < 0 {
 			return 0, fmt.Errorf("cannot be negative")
 		}
-		return uint64(s), nil
+		return float64(s), nil
 	case float64:
 		if s < 0 {
 			return 0, fmt.Errorf("cannot be negative")
 		}
 		// TODO: emit warning of possible truncation?
-		return uint64(s), nil
-	case uint64:
 		return s, nil
+	case uint64:
+		return float64(s), nil
 	default:
 		return 0, fmt.Errorf("failed to convert value \"%v\" to number", size)
 	}

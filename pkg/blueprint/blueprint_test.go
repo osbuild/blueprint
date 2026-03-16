@@ -83,9 +83,9 @@ minsize = "20 GiB"
 	assert.Equal(t, bp.Packages, []Package{{Name: "httpd", Version: "2.4.*"}})
 	assert.Equal(t, bp.EnabledModules, []EnabledModule{{Name: "nodejs", Stream: "18"}})
 	assert.Equal(t, "/var", bp.Customizations.Filesystem[0].Mountpoint)
-	assert.Equal(t, uint64(2147483648), bp.Customizations.Filesystem[0].MinSize)
+	assert.Equal(t, float64(2147483648), bp.Customizations.Filesystem[0].MinSize)
 	assert.Equal(t, "/opt", bp.Customizations.Filesystem[1].Mountpoint)
-	assert.Equal(t, uint64(20*datasizes.GiB), bp.Customizations.Filesystem[1].MinSize)
+	assert.Equal(t, float64(20*datasizes.GiB), bp.Customizations.Filesystem[1].MinSize)
 }
 
 func TestDeepCopy(t *testing.T) {
