@@ -53,6 +53,62 @@ func TestPartitioningValidation(t *testing.T) {
 			},
 			expectedMsg: "",
 		},
+		"happy-sector-size-512": {
+			partitioning: &blueprint.DiskCustomization{
+				SectorSize: 512,
+				Partitions: []blueprint.PartitionCustomization{
+					{
+						FilesystemTypedCustomization: blueprint.FilesystemTypedCustomization{
+							FSType:     "xfs",
+							Mountpoint: "/",
+						},
+					},
+				},
+			},
+			expectedMsg: "",
+		},
+		"happy-sector-size-4096": {
+			partitioning: &blueprint.DiskCustomization{
+				SectorSize: 4096,
+				Partitions: []blueprint.PartitionCustomization{
+					{
+						FilesystemTypedCustomization: blueprint.FilesystemTypedCustomization{
+							FSType:     "xfs",
+							Mountpoint: "/",
+						},
+					},
+				},
+			},
+			expectedMsg: "",
+		},
+		"happy-sector-size-default": {
+			partitioning: &blueprint.DiskCustomization{
+				SectorSize: 0, // default, no validation error
+				Partitions: []blueprint.PartitionCustomization{
+					{
+						FilesystemTypedCustomization: blueprint.FilesystemTypedCustomization{
+							FSType:     "xfs",
+							Mountpoint: "/",
+						},
+					},
+				},
+			},
+			expectedMsg: "",
+		},
+		"unhappy-sector-size-not-power-of-2": {
+			partitioning: &blueprint.DiskCustomization{
+				SectorSize: 1000,
+				Partitions: []blueprint.PartitionCustomization{
+					{
+						FilesystemTypedCustomization: blueprint.FilesystemTypedCustomization{
+							FSType:     "xfs",
+							Mountpoint: "/",
+						},
+					},
+				},
+			},
+			expectedMsg: "invalid partitioning customizations: sector_size must be a power of 2, got 1000",
+		},
 		"happy-plain+btrfs+swap": {
 			partitioning: &blueprint.DiskCustomization{
 				Partitions: []blueprint.PartitionCustomization{
@@ -2070,6 +2126,24 @@ func TestDiskCustomizationUnmarshalJSON(t *testing.T) {
 			inputTOML: `type = "gpt"`,
 			expected: &blueprint.DiskCustomization{
 				Type: "gpt",
+			},
+		},
+		"sector_size/512": {
+			inputJSON: `{
+				"sector_size": 512
+			}`,
+			inputTOML: "sector_size = 512",
+			expected: &blueprint.DiskCustomization{
+				SectorSize: 512,
+			},
+		},
+		"sector_size/4096": {
+			inputJSON: `{
+				"sector_size": 4096
+			}`,
+			inputTOML: "sector_size = 4096",
+			expected: &blueprint.DiskCustomization{
+				SectorSize: 4096,
 			},
 		},
 	}
