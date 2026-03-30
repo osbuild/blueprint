@@ -375,6 +375,21 @@ func TestGetInstallerErrors(t *testing.T) {
 						Enable:  []string{anaconda.ModuleUsers},
 						Disable: []string{anaconda.ModuleSecurity},
 					},
+					Payload: &InstallerPayload{
+						Flatpaks: &FlatpakMeta{
+							Force: []Flatpak{
+								Flatpak{
+									Registry: &FlatpakRegistry{
+										RemoteName: "fedora",
+										URL:        "oci+https://registry.fedoraproject.org",
+									},
+									References: []string{
+										"app/org.kde.skanpage/x86_64/stable",
+									},
+								},
+							},
+						},
+					},
 				},
 			},
 		},
