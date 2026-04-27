@@ -42,6 +42,13 @@ func TestJSON(t *testing.T) {
 				union: json.RawMessage(`{"type":"unknown","name":"test"}`),
 			},
 		},
+		{
+			name: "custom-with-after-before",
+			json: `{"type":"custom","name":"test","after":["network-online.target"],"before":["postgresql.service"],"contents":"echo hello"}`,
+			field: FirstbootScriptCustomization{
+				union: json.RawMessage(`{"type":"custom","name":"test","after":["network-online.target"],"before":["postgresql.service"],"contents":"echo hello"}`),
+			},
+		},
 	}
 
 	for _, tt := range tests {
@@ -98,6 +105,17 @@ job_template_url = "https://aap.example.com/api/v2/job_templates/9/callback/"`,
 name = "test"`,
 			field: FirstbootScriptCustomization{
 				union: json.RawMessage(`{"type":"unknown","name":"test"}`),
+			},
+		},
+		{
+			name: "custom-with-after-before",
+			toml: `type = "custom"
+name = "test"
+after = ["network-online.target"]
+before = ["postgresql.service"]
+contents = "echo hello"`,
+			field: FirstbootScriptCustomization{
+				union: json.RawMessage(`{"type":"custom","name":"test","after":["network-online.target"],"before":["postgresql.service"],"contents":"echo hello"}`),
 			},
 		},
 	}
@@ -169,6 +187,24 @@ contents = "echo hello"`,
 			},
 		},
 		{
+			name: "custom-with-after-before",
+			json: `{"type":"custom","name":"test","after":["network-online.target"],"before":["postgresql.service"],"contents":"echo hello"}`,
+			toml: `type = "custom"
+name = "test"
+after = ["network-online.target"]
+before = ["postgresql.service"]
+contents = "echo hello"`,
+			expectedCustom: &CustomFirstbootCustomization{
+				FirstbootCommonCustomization: FirstbootCommonCustomization{
+					Type:   "custom",
+					Name:   "test",
+					After:  []string{"network-online.target"},
+					Before: []string{"postgresql.service"},
+				},
+				Contents: "echo hello",
+			},
+		},
+		{
 			name: "satellite",
 			json: `{"type":"satellite","name":"test","command":"echo hello"}`,
 			toml: `type = "satellite"
@@ -178,6 +214,22 @@ command = "echo hello"`,
 				FirstbootCommonCustomization: FirstbootCommonCustomization{
 					Type: "satellite",
 					Name: "test",
+				},
+				Command: "echo hello",
+			},
+		},
+		{
+			name: "satellite-with-after",
+			json: `{"type":"satellite","name":"test","after":["network-online.target"],"command":"echo hello"}`,
+			toml: `type = "satellite"
+name = "test"
+after = ["network-online.target"]
+command = "echo hello"`,
+			expectedSatellite: &SatelliteFirstbootCustomization{
+				FirstbootCommonCustomization: FirstbootCommonCustomization{
+					Type:  "satellite",
+					Name:  "test",
+					After: []string{"network-online.target"},
 				},
 				Command: "echo hello",
 			},
@@ -197,6 +249,22 @@ job_template_url = "https://aap.example.com/api/v2/job_templates/9/callback/"`,
 			expectedAAP: &AAPFirstbootCustomization{
 				FirstbootCommonCustomization: FirstbootCommonCustomization{
 					Type: "aap",
+				},
+				JobTemplateURL: "https://aap.example.com/api/v2/job_templates/9/callback/",
+				HostConfigKey:  "test",
+			},
+		},
+		{
+			name: "aap-with-before",
+			json: `{"type":"aap","host_config_key":"test","before":["sssd.service"],"job_template_url":"https://aap.example.com/api/v2/job_templates/9/callback/"}`,
+			toml: `type = "aap"
+host_config_key = "test"
+before = ["sssd.service"]
+job_template_url = "https://aap.example.com/api/v2/job_templates/9/callback/"`,
+			expectedAAP: &AAPFirstbootCustomization{
+				FirstbootCommonCustomization: FirstbootCommonCustomization{
+					Type:   "aap",
+					Before: []string{"sssd.service"},
 				},
 				JobTemplateURL: "https://aap.example.com/api/v2/job_templates/9/callback/",
 				HostConfigKey:  "test",
