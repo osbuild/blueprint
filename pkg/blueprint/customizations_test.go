@@ -540,6 +540,83 @@ func TestGetIgnition(t *testing.T) {
 	}
 }
 
+func TestGetBootloader(t *testing.T) {
+	type testCase struct {
+		customizations *Customizations
+		expected       *BootloaderCustomization
+	}
+
+	serial := "serial --speed=115200 --unit=0 --word=8 --parity=no --stop=1"
+
+	testCases := map[string]testCase{
+		"nil-customizations": {
+			customizations: nil,
+			expected:       nil,
+		},
+		"nil-bootloader": {
+			customizations: &Customizations{},
+			expected:       nil,
+		},
+		"grub2-terminal-input-output": {
+			customizations: &Customizations{
+				Bootloader: &BootloaderCustomization{
+					Grub2: &Grub2Customization{
+						TerminalInput:  []string{"serial", "console"},
+						TerminalOutput: []string{"serial", "console"},
+					},
+				},
+			},
+			expected: &BootloaderCustomization{
+				Grub2: &Grub2Customization{
+					TerminalInput:  []string{"serial", "console"},
+					TerminalOutput: []string{"serial", "console"},
+				},
+			},
+		},
+		"grub2-serial": {
+			customizations: &Customizations{
+				Bootloader: &BootloaderCustomization{
+					Grub2: &Grub2Customization{
+						Serial: &serial,
+					},
+				},
+			},
+			expected: &BootloaderCustomization{
+				Grub2: &Grub2Customization{
+					Serial: &serial,
+				},
+			},
+		},
+		"grub2-all-fields": {
+			customizations: &Customizations{
+				Bootloader: &BootloaderCustomization{
+					Grub2: &Grub2Customization{
+						TerminalInput:  []string{"serial"},
+						TerminalOutput: []string{"serial"},
+						Serial:         &serial,
+					},
+				},
+			},
+			expected: &BootloaderCustomization{
+				Grub2: &Grub2Customization{
+					TerminalInput:  []string{"serial"},
+					TerminalOutput: []string{"serial"},
+					Serial:         &serial,
+				},
+			},
+		},
+	}
+
+	for name := range testCases {
+		tc := testCases[name]
+		t.Run(name, func(t *testing.T) {
+			assert := assert.New(t)
+			result := tc.customizations.GetBootloader()
+			assert.Equal(tc.expected, result)
+		})
+	}
+}
+
 func TestGetImportRPMGPGKey(t *testing.T) {
 	expectedRPM := RPMCustomization{
 		ImportKeys: &RPMImportKeys{
