@@ -13,7 +13,7 @@ jobs:
     name: "🛃 Unit tests"
     runs-on: ubuntu-22.04
     container:
-      image: registry.fedoraproject.org/fedora:41
+      image: registry.fedoraproject.org/fedora:44
 
     steps:
       - name: Install build and test dependencies
