@@ -78,6 +78,22 @@ func TestGetKernel(t *testing.T) {
 	assert.Equal(t, &expectedKernel, retKernel)
 }
 
+func TestGetKernelVersion(t *testing.T) {
+	expectedKernel := KernelCustomization{
+		Name:    "kernel",
+		Version: "6.12.0-211",
+		Append:  "--test",
+	}
+
+	c := Customizations{
+		Kernel: &expectedKernel,
+	}
+
+	retKernel := c.GetKernel()
+
+	assert.Equal(t, &expectedKernel, retKernel)
+}
+
 func TestGetTimezoneSettings(t *testing.T) {
 	expectedTimezone := "testZONE"
 	expectedNTPServers := []string{
