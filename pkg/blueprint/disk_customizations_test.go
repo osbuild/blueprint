@@ -1776,6 +1776,22 @@ func TestPartitionCustomizationUnmarshalTOML(t *testing.T) {
 		"plain": {
 			input: `type = "plain"
 					minsize = "1 GiB"
+					mountpoint = "/"
+					label = "root"
+					fs_type = "xfs"`,
+			expected: &blueprint.PartitionCustomization{
+				Type:    "plain",
+				MinSize: 1 * datasizes.GiB,
+				FilesystemTypedCustomization: blueprint.FilesystemTypedCustomization{
+					Mountpoint: "/",
+					Label:      "root",
+					FSType:     "xfs",
+				},
+			},
+		},
+		"plain-with-parts": {
+			input: `type = "plain"
+					minsize = "1 GiB"
 					part_type = "12345678-1234-1234-1234-1234567890ab"
 					part_label = "rootpart"
 					part_uuid = "87654321-4321-4321-4321-ba0987654321"
