@@ -1789,6 +1789,28 @@ func TestPartitionCustomizationUnmarshalTOML(t *testing.T) {
 				},
 			},
 		},
+		"plain-with-parts": {
+			input: `type = "plain"
+					minsize = "1 GiB"
+					part_type = "12345678-1234-1234-1234-1234567890ab"
+					part_label = "rootpart"
+					part_uuid = "87654321-4321-4321-4321-ba0987654321"
+					mountpoint = "/"
+					label = "root"
+					fs_type = "xfs"`,
+			expected: &blueprint.PartitionCustomization{
+				Type:      "plain",
+				MinSize:   1 * datasizes.GiB,
+				PartType:  "12345678-1234-1234-1234-1234567890ab",
+				PartLabel: "rootpart",
+				PartUUID:  "87654321-4321-4321-4321-ba0987654321",
+				FilesystemTypedCustomization: blueprint.FilesystemTypedCustomization{
+					Mountpoint: "/",
+					Label:      "root",
+					FSType:     "xfs",
+				},
+			},
+		},
 		"plain-with-int": {
 			input: `type = "plain"
 					minsize = 1073741824
@@ -1808,6 +1830,9 @@ func TestPartitionCustomizationUnmarshalTOML(t *testing.T) {
 		"btrfs": {
 			input: `type = "btrfs"
 					minsize = "10 GiB"
+					part_type = "12345678-1234-1234-1234-1234567890ab"
+					part_label = "rootpart"
+					part_uuid = "87654321-4321-4321-4321-ba0987654321"
 
 					[[subvolumes]]
 					name = "subvols/root"
@@ -1818,8 +1843,11 @@ func TestPartitionCustomizationUnmarshalTOML(t *testing.T) {
 					mountpoint = "/data"
 					`,
 			expected: &blueprint.PartitionCustomization{
-				Type:    "btrfs",
-				MinSize: 10 * datasizes.GiB,
+				Type:      "btrfs",
+				MinSize:   10 * datasizes.GiB,
+				PartType:  "12345678-1234-1234-1234-1234567890ab",
+				PartLabel: "rootpart",
+				PartUUID:  "87654321-4321-4321-4321-ba0987654321",
 				BtrfsVolumeCustomization: blueprint.BtrfsVolumeCustomization{
 					Subvolumes: []blueprint.BtrfsSubvolumeCustomization{
 						{
@@ -1867,6 +1895,9 @@ func TestPartitionCustomizationUnmarshalTOML(t *testing.T) {
 			input: `type = "lvm"
 					name = "myvg"
 					minsize = "99 GiB"
+					part_type = "12345678-1234-1234-1234-1234567890ab"
+					part_label = "rootpart"
+					part_uuid = "87654321-4321-4321-4321-ba0987654321"
 
 					[[logical_volumes]]
 					name = "homelv"
@@ -1883,8 +1914,11 @@ func TestPartitionCustomizationUnmarshalTOML(t *testing.T) {
 					minsize = "3 GiB"
 					`,
 			expected: &blueprint.PartitionCustomization{
-				Type:    "lvm",
-				MinSize: 99 * datasizes.GiB,
+				Type:      "lvm",
+				MinSize:   99 * datasizes.GiB,
+				PartType:  "12345678-1234-1234-1234-1234567890ab",
+				PartLabel: "rootpart",
+				PartUUID:  "87654321-4321-4321-4321-ba0987654321",
 				VGCustomization: blueprint.VGCustomization{
 					Name: "myvg",
 					LogicalVolumes: []blueprint.LVCustomization{
@@ -1971,6 +2005,13 @@ func TestPartitionCustomizationUnmarshalTOML(t *testing.T) {
 					fs_type = "xfs"
 					`,
 			errorMsg: "toml: line 0: TOML unmarshal: error decoding minsize for partition: cannot be negative",
+		},
+		"part_type-not-string": {
+			input: `minsize = "10 GiB"
+					mountpoint = "/"
+					part_type = 12345678
+					`,
+			errorMsg: `toml: line 0: TOML unmarshal: error decoding partition with type "plain": json: cannot unmarshal number into Go struct field .part_type of type string`,
 		},
 		"wrong-type/btrfs-with-lvm": {
 			input: `type = "btrfs"
