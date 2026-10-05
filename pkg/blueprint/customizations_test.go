@@ -341,6 +341,23 @@ func TestGetISO(t *testing.T) {
 	assert.EqualValues(t, expectedISO, *retISOCustomizations)
 }
 
+func TestGetISOVolumeIDWithArch(t *testing.T) {
+	expectedISO := ISOCustomization{
+		ApplicationID: "FEDORA-WORKSTATION-LIVE-43",
+		Publisher:     "FEDORA PROJECT",
+		VolumeID:      "Fedora-WS-Live-$arch",
+	}
+
+	testCustomizations := Customizations{
+		ISO: &expectedISO,
+	}
+
+	retISOCustomizations, err := testCustomizations.GetISO()
+
+	assert.NoError(t, err)
+	assert.EqualValues(t, expectedISO, *retISOCustomizations)
+}
+
 func TestGetISOFaultyVolumeID(t *testing.T) {
 	expectedISO := ISOCustomization{
 		ApplicationID: "FEDORA-WORKSTATION-LIVE-43",
