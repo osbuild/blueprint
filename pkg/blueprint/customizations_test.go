@@ -162,9 +162,10 @@ func TestGetFirewall(t *testing.T) {
 
 func TestGetServices(t *testing.T) {
 	expectedServices := ServicesCustomization{
-		Enabled:  []string{"cockpit", "osbuild-composer"},
-		Disabled: []string{"sshd", "ftp"},
-		Masked:   []string{"firewalld"},
+		Enabled:       []string{"cockpit", "osbuild-composer"},
+		Disabled:      []string{"sshd", "ftp"},
+		Masked:        []string{"firewalld"},
+		DefaultTarget: "graphical.target",
 	}
 
 	TestCustomizations := Customizations{
@@ -176,6 +177,7 @@ func TestGetServices(t *testing.T) {
 	assert.ElementsMatch(t, expectedServices.Enabled, retServices.Enabled)
 	assert.ElementsMatch(t, expectedServices.Disabled, retServices.Disabled)
 	assert.ElementsMatch(t, expectedServices.Masked, retServices.Masked)
+	assert.Equal(t, expectedServices.DefaultTarget, retServices.DefaultTarget)
 }
 
 func TestError(t *testing.T) {
