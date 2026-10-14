@@ -426,6 +426,16 @@ func TestGetInstallerErrors(t *testing.T) {
 				},
 			},
 		},
+		"packages": {
+			customizations: Customizations{
+				Installer: &InstallerCustomization{
+					Packages: []Package{
+						{Name: "net-tools"},
+						{Name: "vim-enhanced", Version: "9.*"},
+					},
+				},
+			},
+		},
 		"unattended+custom": {
 			customizations: Customizations{
 				Installer: &InstallerCustomization{
