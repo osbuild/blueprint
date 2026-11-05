@@ -8,6 +8,7 @@ type InstallerCustomization struct {
 	Bootloader   *InstallerBootloader `json:"bootloader,omitempty" toml:"bootloader,omitempty"`
 	Payload      *InstallerPayload    `json:"payload,omitempty" toml:"payload,omitempty"`
 	Packages     []Package            `json:"packages,omitempty" toml:"packages,omitempty"`
+	Kernel       *KernelCustomization `json:"kernel,omitempty" toml:"kernel,omitempty"`
 }
 
 type Kickstart struct {
