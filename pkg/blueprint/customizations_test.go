@@ -438,6 +438,15 @@ func TestGetInstallerErrors(t *testing.T) {
 				},
 			},
 		},
+		"kernel": {
+			customizations: Customizations{
+				Installer: &InstallerCustomization{
+					Kernel: &KernelCustomization{
+						Append: "inst.text console=ttyS0,115200n8",
+					},
+				},
+			},
+		},
 		"unattended+custom": {
 			customizations: Customizations{
 				Installer: &InstallerCustomization{
